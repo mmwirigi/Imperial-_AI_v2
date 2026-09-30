@@ -31,11 +31,11 @@ export const TopBar: React.FC<TopBarProps> = ({
                 IMPERIAL AI
               </span>
               <span className="text-[10px] font-mono uppercase bg-neutral-900 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded">
-                Phase 1 Foundation
+                Phase 7 Operations
               </span>
             </div>
             <p className="text-[11px] text-neutral-400">
-              WordPress AI Command Center · Imperial Enterprise Kenya
+              WordPress Autonomous Execution & Operations · Imperial Enterprise Kenya
             </p>
           </div>
         </div>
