@@ -31,7 +31,8 @@ import {
   initialIncidents,
   initialAlerts,
   initialFairQueue,
-  initialChaosScenarios
+  initialChaosScenarios,
+  initialPhase8AcceptanceItems
 } from './data/sampleData';
 import { 
   Site, 
@@ -71,7 +72,8 @@ import {
   IncidentItem,
   AlertItem,
   FairQueueItem,
-  ChaosScenario
+  ChaosScenario,
+  Phase8AcceptanceItem
 } from './types';
 import { TopBar } from './components/TopBar';
 import { BottomNav } from './components/BottomNav';
@@ -162,6 +164,8 @@ export function App() {
   const [productionReports, setProductionReports] = useState<ProductionReport[]>(initialProductionReports);
   const [securityInvariants, setSecurityInvariants] = useState<SecurityInvariantItem[]>(initialSecurityInvariants);
   const [readinessChecklist, setReadinessChecklist] = useState<ChecklistItem[]>(initialChecklistItems);
+  const [phase8AcceptanceItems, setPhase8AcceptanceItems] = useState<Phase8AcceptanceItem[]>(initialPhase8AcceptanceItems);
+  const [isRunningPhase8Acceptance, setIsRunningPhase8Acceptance] = useState(false);
   const [integrationSteps, setIntegrationSteps] = useState<IntegrationWorkflowStep[]>(initialIntegrationWorkflow);
   const [selectedReportForModal, setSelectedReportForModal] = useState<ProductionReport | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -2330,6 +2334,39 @@ export function App() {
     setIsRunningReliability(false);
   };
 
+  const handleRunPhase8AcceptanceTest = async (testId: string) => {
+    setPhase8AcceptanceItems((prev) =>
+      prev.map((item) =>
+        item.id === testId
+          ? {
+              ...item,
+              status: 'VERIFIED',
+              lastRunTimestamp: new Date().toLocaleTimeString(),
+            }
+          : item
+      )
+    );
+  };
+
+  const handleRunAllPhase8AcceptanceTests = async () => {
+    setIsRunningPhase8Acceptance(true);
+    for (const test of phase8AcceptanceItems) {
+      await new Promise((r) => setTimeout(r, 60));
+      setPhase8AcceptanceItems((prev) =>
+        prev.map((item) =>
+          item.id === test.id
+            ? {
+                ...item,
+                status: 'VERIFIED',
+                lastRunTimestamp: new Date().toLocaleTimeString(),
+              }
+            : item
+        )
+      );
+    }
+    setIsRunningPhase8Acceptance(false);
+  };
+
   // =========================================================
   // Phase 8: Section 2 & 3 - Observability & Chaos Handlers
   // =========================================================
@@ -2762,6 +2799,10 @@ export function App() {
             onRunReliabilityTest={handleRunReliabilityTest}
             onRunAllReliabilityTests={handleRunAllReliabilityTests}
             isRunningReliability={isRunningReliability}
+            phase8AcceptanceItems={phase8AcceptanceItems}
+            onRunPhase8AcceptanceTest={handleRunPhase8AcceptanceTest}
+            onRunAllPhase8AcceptanceTests={handleRunAllPhase8AcceptanceTests}
+            isRunningPhase8Acceptance={isRunningPhase8Acceptance}
           />
         );
       case 'sites':

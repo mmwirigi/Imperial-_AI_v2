@@ -47,6 +47,7 @@ export interface Site {
   siteName: string;
   websiteUrl: string;
   clientCompanyName: string;
+  clientId?: string;
   mcpEndpoint: string;
   mcpStatus: McpStatus;
   wordPressType: WordPressType;
@@ -1241,6 +1242,46 @@ export interface ChaosScenario {
   logs: string[];
   assertionsPassed: number;
   assertionsTotal: number;
+}
+
+export interface Phase8AcceptanceItem {
+  id: string;
+  itemNumber: number;
+  title: string;
+  category: 'RELIABILITY' | 'SECURITY' | 'OBSERVABILITY' | 'SCALABILITY' | 'CHAOS' | 'REGRESSION';
+  status: 'VERIFIED' | 'RUNNING' | 'PENDING' | 'FAILED';
+  verificationDetails: string;
+  authority: 'PHASE_5' | 'PHASE_6' | 'PHASE_7' | 'PHASE_8';
+  lastRunTimestamp?: string;
+}
+
+export interface FullRecoveryStep {
+  id: string;
+  stepNumber: number;
+  phase: string;
+  action: string;
+  expectedInvariant: string;
+  actualResult: string;
+  status: 'PENDING' | 'RUNNING' | 'PASSED' | 'FAILED';
+}
+
+export interface DisasterRecoveryScenario {
+  id: string;
+  disasterType: 
+    | 'APP_CRASH' 
+    | 'STORAGE_CORRUPTION' 
+    | 'MCP_OUTAGE' 
+    | 'NETWORK_OUTAGE' 
+    | 'AUTH_FAILURE' 
+    | 'INTERRUPTED_TASK' 
+    | 'LOST_WORKER' 
+    | 'PARTIAL_BULK_OP';
+  name: string;
+  description: string;
+  recoveryProcedure: string[];
+  status: 'READY' | 'RECOVERING' | 'RECOVERED' | 'FAILED';
+  outcome: string;
+  lastSimulated?: string;
 }
 
 
