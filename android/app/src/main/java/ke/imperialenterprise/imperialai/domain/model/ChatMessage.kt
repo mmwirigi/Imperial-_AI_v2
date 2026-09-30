@@ -62,5 +62,9 @@ data class ApprovalPromptData(
 enum class ApprovalStatus {
     PENDING,
     APPROVED,
-    REJECTED
+    REJECTED,
+    EXPIRED,
+    CANCELLED,
+    EXECUTED,
+    FAILED
 }

@@ -297,9 +297,9 @@ fun ChatScreen(
                 tools = uiState.activeSiteTools,
                 mcpStatus = uiState.activeMcpStatus,
                 onDismiss = { viewModel.toggleToolsDrawer() },
-                onExecuteTool = { tool ->
+                onSelectTool = { tool ->
                     viewModel.toggleToolsDrawer()
-                    viewModel.triggerToolExecution(tool, emptyMap())
+                    viewModel.onInputTextChanged("Please evaluate using tool: ${tool.name}")
                 }
             )
         }
@@ -467,7 +467,7 @@ fun DiscoveredToolsDialog(
     tools: List<McpTool>,
     mcpStatus: McpConnectionStatus,
     onDismiss: () -> Unit,
-    onExecuteTool: (McpTool) -> Unit
+    onSelectTool: (McpTool) -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -578,11 +578,11 @@ fun DiscoveredToolsDialog(
                                         horizontalArrangement = Arrangement.End
                                     ) {
                                         OutlinedButton(
-                                            onClick = { onExecuteTool(tool) },
+                                            onClick = { onSelectTool(tool) },
                                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                             modifier = Modifier.height(26.dp)
                                         ) {
-                                            Text("Execute Tool", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                                            Text("Ask Agent", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
                                         }
                                     }
                                 }

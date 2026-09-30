@@ -6,10 +6,14 @@ import ke.imperialenterprise.imperialai.data.mcp.DefaultToolRegistry
 import ke.imperialenterprise.imperialai.data.mcp.McpCredentialManager
 import ke.imperialenterprise.imperialai.data.openrouter.OpenRouterProvider
 import ke.imperialenterprise.imperialai.data.repository.*
+import ke.imperialenterprise.imperialai.data.security.DefaultAppLockManager
+import ke.imperialenterprise.imperialai.data.security.DefaultApprovalEngine
 import ke.imperialenterprise.imperialai.domain.agent.AIProvider
 import ke.imperialenterprise.imperialai.domain.agent.McpManager
 import ke.imperialenterprise.imperialai.domain.agent.ToolRegistry
 import ke.imperialenterprise.imperialai.domain.repository.*
+import ke.imperialenterprise.imperialai.domain.security.AppLockManager
+import ke.imperialenterprise.imperialai.domain.security.ApprovalEngine
 
 /**
  * Imperial AI Application root.
@@ -17,6 +21,8 @@ import ke.imperialenterprise.imperialai.domain.repository.*
  * - Phase 1: Core site, task, conversation, and security models
  * - Phase 2: OpenRouter AI Provider and dynamic model repository
  * - Phase 3: Remote MCP Engine with Streamable HTTP transport and strict site isolation
+ * - Phase 4: AI + MCP Agent Engine
+ * - Phase 5: Permission & Security Engine with ApprovalEngine and AppLockManager
  */
 class ImperialAiApplication : Application() {
 
@@ -29,8 +35,6 @@ class ImperialAiApplication : Application() {
     lateinit var auditLogger: AuditLogger
         private set
     lateinit var credentialStore: CredentialStore
-        private set
-    lateinit var permissionEngine: PermissionEngine
         private set
     lateinit var aiProvider: AIProvider
         private set
@@ -47,7 +51,15 @@ class ImperialAiApplication : Application() {
     lateinit var mcpManager: McpManager
         private set
 
-    // Phase 4: AI + MCP Agent Engine
+    // Phase 4 & 5: AI + MCP Agent Engine and Security Engine
+    lateinit var agentRunRepository: AgentRunRepository
+        private set
+    lateinit var approvalEngine: ApprovalEngine
+        private set
+    lateinit var permissionEngine: PermissionEngine
+        private set
+    lateinit var appLockManager: AppLockManager
+        private set
     lateinit var agentEngine: ke.imperialenterprise.imperialai.domain.agent.AgentEngine
         private set
 
@@ -60,7 +72,11 @@ class ImperialAiApplication : Application() {
         siteRepository = InMemorySiteRepository()
         taskRepository = InMemoryTaskRepository()
         conversationRepository = InMemoryConversationRepository()
-        permissionEngine = DefaultPermissionEngine()
+
+        // Phase 5: Security Engine components
+        approvalEngine = DefaultApprovalEngine(auditLogger)
+        permissionEngine = DefaultPermissionEngine(approvalEngine, auditLogger)
+        appLockManager = DefaultAppLockManager()
 
         // Phase 2: OpenRouter AI Provider and Model Repository
         aiProvider = OpenRouterProvider(credentialStore)
@@ -79,6 +95,7 @@ class ImperialAiApplication : Application() {
         )
 
         // Phase 4: AI + MCP Agent Engine
+        agentRunRepository = InMemoryAgentRunRepository()
         agentEngine = ke.imperialenterprise.imperialai.data.agent.DefaultAgentEngine(
             aiProvider = aiProvider,
             toolRegistry = toolRegistry,
@@ -88,7 +105,9 @@ class ImperialAiApplication : Application() {
             conversationRepository = conversationRepository,
             mcpServerRepository = mcpServerRepository,
             credentialStore = credentialStore,
-            auditLogger = auditLogger
+            auditLogger = auditLogger,
+            agentRunRepository = agentRunRepository,
+            approvalEngine = approvalEngine
         )
     }
 }

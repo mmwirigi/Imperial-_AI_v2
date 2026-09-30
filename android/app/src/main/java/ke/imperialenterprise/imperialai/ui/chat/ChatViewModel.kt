@@ -17,6 +17,7 @@ data class ChatUiState(
     val conversation: ChatConversation? = null,
     val messages: List<ChatMessage> = emptyList(),
     val inputText: String = "",
+    val mode: AgentMode = AgentMode.READ,
     val isSiteSelectorOpen: Boolean = false,
     val isModelPickerOpen: Boolean = false,
     val isToolsDrawerOpen: Boolean = false,
@@ -31,6 +32,7 @@ data class ChatUiState(
     val availableModels: List<AIModel> = emptyList(),
     val isOpenRouterConfigured: Boolean = false,
     val activeError: AIError? = null,
+    val pendingApprovalRequest: ApprovalRequest? = null,
     val pendingDangerousApproval: ApprovalPromptData? = null,
     val pendingApprovalId: String? = null,
     val pendingToolExecutionRequest: ToolExecutionRequest? = null,
@@ -161,6 +163,19 @@ class ChatViewModel(
             closeSiteSelector()
             return
         }
+
+        // Section 31: Execution Context Lock
+        if (agentEngine.isRunning()) {
+            val currentSiteName = _uiState.value.activeSite?.siteName ?: "the active site"
+            _uiState.update {
+                it.copy(
+                    activeError = AIError.networkError("An agent is currently running for $currentSiteName. Stop the current task before switching sites."),
+                    isSiteSelectorOpen = false
+                )
+            }
+            return
+        }
+
         _uiState.update {
             it.copy(
                 activeSite = site,
@@ -171,6 +186,10 @@ class ChatViewModel(
         viewModelScope.launch {
             mcpManager.switchActiveSite(site, _uiState.value.conversation?.id)
         }
+    }
+
+    fun setAgentMode(mode: AgentMode) {
+        _uiState.update { it.copy(mode = mode) }
     }
 
     fun selectModel(modelId: String) {
@@ -281,7 +300,8 @@ class ChatViewModel(
                     prompt = text,
                     history = history,
                     modelId = modelId,
-                    maxIterations = 10
+                    mode = _uiState.value.mode,
+                    maxIterations = _uiState.value.maxIterations
                 ).catch { e ->
                     val aiError = if (e is AIProviderException) e.error else AIError.networkError(e)
                     _uiState.update {
@@ -295,7 +315,7 @@ class ChatViewModel(
                 }.collect { event ->
                     when (event) {
                         is AgentExecutionEvent.Started -> {
-                            _uiState.update { it.copy(agentThought = "Starting agent loop for ${event.siteName}...") }
+                            _uiState.update { it.copy(agentThought = "Starting agent loop for ${event.siteName} [${event.mode} MODE]...") }
                         }
                         is AgentExecutionEvent.IterationStarted -> {
                             _uiState.update {
@@ -333,9 +353,9 @@ class ChatViewModel(
                         is AgentExecutionEvent.ToolApprovalRequired -> {
                             _uiState.update {
                                 it.copy(
+                                    pendingApprovalRequest = event.approvalRequest,
                                     pendingDangerousApproval = event.promptData,
-                                    pendingApprovalId = event.approvalId,
-                                    pendingToolExecutionRequest = event.request,
+                                    pendingApprovalId = event.approvalRequest.id,
                                     agentThought = "Awaiting operator authorization for ${event.tool.name}"
                                 )
                             }
@@ -362,6 +382,7 @@ class ChatViewModel(
                             conversationRepository.addMessage(resultMsg)
                             _uiState.update {
                                 it.copy(
+                                    pendingApprovalRequest = null,
                                     pendingDangerousApproval = null,
                                     pendingApprovalId = null,
                                     agentThought = "Executed ${event.tool.name} in ${event.result.durationMs}ms"
@@ -371,6 +392,7 @@ class ChatViewModel(
                         is AgentExecutionEvent.ToolExecutionRejected -> {
                             _uiState.update {
                                 it.copy(
+                                    pendingApprovalRequest = null,
                                     pendingDangerousApproval = null,
                                     pendingApprovalId = null,
                                     agentThought = "Tool execution rejected: ${event.reason}"
@@ -400,6 +422,7 @@ class ChatViewModel(
                                     isAgentExecuting = false,
                                     streamingPartialText = "",
                                     agentThought = null,
+                                    pendingApprovalRequest = null,
                                     pendingDangerousApproval = null,
                                     pendingApprovalId = null
                                 )
@@ -432,28 +455,41 @@ class ChatViewModel(
     }
 
     fun approvePendingAction() {
+        val req = _uiState.value.pendingApprovalRequest
         val approvalId = _uiState.value.pendingApprovalId ?: return
         _uiState.update {
             it.copy(
+                pendingApprovalRequest = null,
                 pendingDangerousApproval = null,
                 pendingApprovalId = null
             )
         }
         viewModelScope.launch {
-            agentEngine.resolveApproval(approvalId, approved = true)
+            agentEngine.resolveApproval(
+                approvalId = approvalId,
+                approved = true,
+                suppliedArgumentsHash = req?.argumentsHash
+            )
         }
     }
 
     fun rejectPendingAction() {
+        val req = _uiState.value.pendingApprovalRequest
         val approvalId = _uiState.value.pendingApprovalId ?: return
         _uiState.update {
             it.copy(
+                pendingApprovalRequest = null,
                 pendingDangerousApproval = null,
                 pendingApprovalId = null
             )
         }
         viewModelScope.launch {
-            agentEngine.resolveApproval(approvalId, approved = false, operatorNotes = "Rejected by operator in Chat")
+            agentEngine.resolveApproval(
+                approvalId = approvalId,
+                approved = false,
+                operatorNotes = "Rejected by operator in Chat",
+                suppliedArgumentsHash = req?.argumentsHash
+            )
         }
     }
 }

@@ -26,6 +26,7 @@ data class McpTool(
  */
 enum class ToolRiskLevel(val displayName: String, val requiresApprovalByDefault: Boolean) {
     READ("Read-Only Query", false),
+    UNKNOWN("Unknown Risk", true),
     LOW_RISK_WRITE("Low-Risk Write", true),
     HIGH_RISK_WRITE("High-Risk Write", true),
     DESTRUCTIVE("Destructive Operation", true)

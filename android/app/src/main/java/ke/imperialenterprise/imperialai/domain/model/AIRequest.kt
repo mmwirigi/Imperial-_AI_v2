@@ -4,9 +4,14 @@ import java.util.UUID
 
 /**
  * Operating mode for the Agent loop.
+ * - READ: Only read-only inspections permitted. All writes and destructive actions blocked.
+ * - PLAN: Analysis, read-only queries, and proposed action plans. Live mutations blocked.
+ * - EXECUTE: Reads and operator-approved mutations permitted. Destructive operations require double confirmation.
  */
 enum class AgentMode {
     READ,
+    PLAN,
+    EXECUTE,
     ASSISTED,
     AUTONOMOUS
 }

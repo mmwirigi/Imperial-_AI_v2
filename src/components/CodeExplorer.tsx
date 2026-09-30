@@ -407,6 +407,128 @@ object McpDatabaseMigrations {
 }`,
     },
     {
+      path: 'android/app/src/main/java/ke/imperialenterprise/imperialai/data/agent/DefaultAgentEngine.kt',
+      name: 'DefaultAgentEngine.kt',
+      category: 'Agent Architecture',
+      description: 'Phase 4 autonomous agent engine coordinating OpenRouter reasoning, MCP tool discovery, strict site isolation, operator approvals, and execution loops.',
+      codeSnippet: `package ke.imperialenterprise.imperialai.data.agent
+
+class DefaultAgentEngine(
+    private val aiProvider: AIProvider,
+    private val toolRegistry: ToolRegistry,
+    private val permissionEngine: PermissionEngine,
+    private val mcpManager: McpManager,
+    private val siteRepository: SiteRepository,
+    private val conversationRepository: ConversationRepository,
+    private val mcpServerRepository: McpServerRepository,
+    private val credentialStore: CredentialStore,
+    private val auditLogger: AuditLogger,
+    private val agentRunRepository: AgentRunRepository = InMemoryAgentRunRepository()
+) : AgentEngine {
+    // Flow: User -> Chat -> ChatViewModel -> AgentEngine -> AIProvider -> OpenRouter
+    // -> Model decides tool -> ToolRegistry -> ActiveSiteContext check -> Approval check
+    // -> MCP tool execution -> Tool result -> OpenRouter -> Final response.
+}`,
+    },
+    {
+      path: 'android/app/src/main/java/ke/imperialenterprise/imperialai/domain/agent/ToolSecurityValidator.kt',
+      name: 'ToolSecurityValidator.kt',
+      category: 'Security & Isolation',
+      description: 'Strict 8-rule client isolation gate preventing cross-site tool execution, mismatched server IDs, or unauthenticated remote calls.',
+      codeSnippet: `package ke.imperialenterprise.imperialai.domain.agent
+
+class ToolSecurityValidator(
+    private val siteRepository: SiteRepository,
+    private val conversationRepository: ConversationRepository,
+    private val mcpServerRepository: McpServerRepository,
+    private val toolRegistry: ToolRegistry,
+    private val credentialStore: CredentialStore
+) {
+    // 8 Rules: Active site exists, conversation belongs to site, server belongs to site,
+    // tool belongs to server, tool belongs to site, server connected/enabled,
+    // credentials match server, tool currently registered.
+}`,
+    },
+    {
+      path: 'android/app/src/main/java/ke/imperialenterprise/imperialai/domain/agent/ToolSchemaConverter.kt',
+      name: 'ToolSchemaConverter.kt',
+      category: 'Agent Architecture',
+      description: 'MCP tool schema converter translating tool definitions into OpenRouter function calling schemas with graceful normalization.',
+      codeSnippet: `package ke.imperialenterprise.imperialai.domain.agent
+
+object ToolSchemaConverter {
+    fun convert(tool: McpTool): ConversionResult { ... }
+    fun convertAll(tools: List<McpTool>): Pair<List<AIToolDefinition>, List<String>> { ... }
+}`,
+    },
+    {
+      path: 'android/app/src/main/java/ke/imperialenterprise/imperialai/data/repository/DefaultPermissionEngine.kt',
+      name: 'DefaultPermissionEngine.kt',
+      category: 'Security & Isolation',
+      description: 'Phase 5 permission engine enforcing default-deny, policy precedence (Global -> Site -> Tool -> Agent Mode -> Approval -> Execution), and bulk action protection.',
+      codeSnippet: `package ke.imperialenterprise.imperialai.data.repository
+
+class DefaultPermissionEngine(
+    private val approvalEngine: ApprovalEngine,
+    private val auditLogger: AuditLogger? = null,
+    private val globalPolicy: GlobalPermissionPolicy = GlobalPermissionPolicy()
+) : PermissionEngine {
+    override fun evaluateToolExecution(...): PermissionDecision {
+        // 1. Global Policy (blocked tools, run limits)
+        // 2. Site Policy (allowlist, blocklist, run limits)
+        // 3. Tool Policy (enabled, allowed modes)
+        // 4. Bulk Action Protection
+        // 5. Agent Mode (READ, PLAN, EXECUTE)
+        // 6. Approval Requirement / Deny / Allow
+    }
+}`,
+    },
+    {
+      path: 'android/app/src/main/java/ke/imperialenterprise/imperialai/data/security/DefaultApprovalEngine.kt',
+      name: 'DefaultApprovalEngine.kt',
+      category: 'Security & Isolation',
+      description: 'Operator approval lifecycle engine enforcing deterministic SHA-256 argument binding, automatic expiration, and anti-replay token consumption.',
+      codeSnippet: `package ke.imperialenterprise.imperialai.data.security
+
+class DefaultApprovalEngine(
+    private val auditLogger: AuditLogger? = null
+) : ApprovalEngine {
+    override fun createApprovalRequest(...): ApprovalRequest
+    override fun resolveApproval(...): Boolean
+    override fun consumeApprovalForExecution(...): Boolean
+    override fun revalidatePendingRequests()
+}`,
+    },
+    {
+      path: 'android/app/src/main/java/ke/imperialenterprise/imperialai/domain/security/SensitiveDataRedactor.kt',
+      name: 'SensitiveDataRedactor.kt',
+      category: 'Security & Isolation',
+      description: 'Universal credential and token redactor stripping Bearer tokens, API keys, and passwords before logging, auditing, or UI presentation.',
+      codeSnippet: `package ke.imperialenterprise.imperialai.domain.security
+
+object SensitiveDataRedactor {
+    fun redact(input: String?): String
+    fun redactMap(map: Map<String, Any?>): Map<String, Any?>
+    fun summarizeArguments(args: Map<String, Any?>, maxChars: Int = 120): String
+}`,
+    },
+    {
+      path: 'android/app/src/test/java/ke/imperialenterprise/imperialai/SecurityEngineTestSuite.kt',
+      name: 'SecurityEngineTestSuite.kt',
+      category: 'Data & Repositories',
+      description: 'Comprehensive 28-point security test suite and mock scenarios A-H validating default-deny, context isolation, anti-replay, and fail-closed behaviors.',
+      codeSnippet: `package ke.imperialenterprise.imperialai
+
+class SecurityEngineTestSuite {
+    @Test fun \`test 1 - unknown tool never allows silent execution\`()
+    @Test fun \`test 2 - globally blocked tool is categorically denied\`()
+    @Test fun \`test 8 - modifying arguments invalidates approval hash\`()
+    @Test fun \`test 12 - anti-replay prevents reusing approved token\`()
+    @Test fun \`test 22 - prompt injection cannot override security policies\`()
+    // 28 comprehensive test cases & scenarios A-H...
+}`,
+    },
+    {
       path: 'android/app/src/main/java/ke/imperialenterprise/imperialai/ui/tasks/TasksScreen.kt',
       name: 'TasksScreen.kt',
       category: 'Jetpack Compose UI',

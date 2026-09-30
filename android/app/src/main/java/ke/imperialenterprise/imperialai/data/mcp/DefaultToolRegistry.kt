@@ -45,22 +45,40 @@ class DefaultToolRegistry : ToolRegistry {
     }
 
     override fun evaluateRiskLevel(tool: McpTool): ToolRiskLevel {
+        // Section 10: Explicit MCP metadata annotations take precedence when available
         tool.annotations?.let { annotations ->
             if (annotations.destructive) return ToolRiskLevel.DESTRUCTIVE
             if (annotations.readOnly) return ToolRiskLevel.READ
         }
 
         val name = tool.name.lowercase()
-        return when {
-            name.contains("delete") || name.contains("drop") || name.contains("purge") || name.contains("uninstall") || name.contains("reset") ->
-                ToolRiskLevel.DESTRUCTIVE
-            name.startsWith("get_") || name.startsWith("list_") || name.startsWith("read_") || name.startsWith("search_") || name.contains("inspect") || name.contains("status") ->
-                ToolRiskLevel.READ
-            name.contains("draft") || name.contains("preview") || name.contains("validate") ->
-                ToolRiskLevel.LOW_RISK_WRITE
-            else ->
-                ToolRiskLevel.HIGH_RISK_WRITE
+
+        // Explicit destructive actions
+        if (name.contains("delete") || name.contains("drop") || name.contains("purge") ||
+            name.contains("uninstall") || name.contains("reset") || name.contains("remove") ||
+            name.contains("dangerous_demo")) {
+            return ToolRiskLevel.DESTRUCTIVE
         }
+
+        // Explicit mutating/write actions
+        if (name.contains("create") || name.contains("update") || name.contains("edit") ||
+            name.contains("modify") || name.contains("publish") || name.contains("write") ||
+            name.contains("save") || name.contains("write_demo")) {
+            return ToolRiskLevel.HIGH_RISK_WRITE
+        }
+
+        if (name.contains("draft") || name.contains("preview") || name.contains("validate")) {
+            return ToolRiskLevel.LOW_RISK_WRITE
+        }
+
+        // Section 10: Do NOT infer a tool is safe just because name contains get/list/read/fetch
+        // Only classify as READ if explicitly known safe read tools or read_demo
+        if (name == "read_demo" || name == "wp_get_site_health" || name == "wp_list_posts" || name == "wp_list_plugins") {
+            return ToolRiskLevel.READ
+        }
+
+        // Section 10: If the application cannot confidently classify a tool -> REQUIRE APPROVAL (UNKNOWN)
+        return ToolRiskLevel.UNKNOWN
     }
 
     override fun mapToolToDangerousAction(toolName: String): DangerousActionType {
