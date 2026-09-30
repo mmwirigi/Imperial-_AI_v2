@@ -811,4 +811,202 @@ export interface IntegrationWorkflowStep {
   outputSnippet?: string;
 }
 
+// =========================================================
+// Phase 8: Production Reliability, Recovery & Self-Healing
+// =========================================================
+
+export type ReconciliationState = 'IDLE' | 'SCANNING' | 'SUCCESS' | 'FAILED' | 'UNKNOWN' | 'SAFE_TO_RESUME';
+
+export interface ReconciledTaskRecord {
+  taskId: string;
+  taskTitle: string;
+  siteId: string;
+  siteName: string;
+  previousStatus: string;
+  reconciledStatus: ReconciliationState;
+  interruptedStepId?: string;
+  actualWordPressState: string;
+  expectedWordPressState: string;
+  actionTaken: string;
+  timestamp: string;
+  canSafelyResume: boolean;
+  requiresOperatorDecision: boolean;
+}
+
+export type DeadLetterStatus = 'PENDING_REVIEW' | 'REPLAYED' | 'DISCARDED' | 'ESCALATED';
+
+export interface DeadLetterItem {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  operationId: string;
+  operationTitle: string;
+  siteId: string;
+  siteName: string;
+  failureReason: string;
+  failureCategory: 'RETRY_LIMIT_EXCEEDED' | 'VERIFICATION_FAILURE' | 'MCP_DISCONNECT' | 'INCONSISTENT_STATE' | 'UNKNOWN_OUTCOME' | 'SAFETY_HALT';
+  retryCount: number;
+  retryHistory: Array<{
+    attemptNumber: number;
+    timestamp: string;
+    delayMs: number;
+    errorMessage: string;
+    classification: RetryClassification;
+  }>;
+  timestamps: {
+    firstAttempt: string;
+    lastAttempt: string;
+    enteredQueue: string;
+  };
+  lastKnownState: {
+    preState?: string;
+    attemptedPayload?: string;
+    actualLiveState?: string;
+  };
+  recoveryRecommendation: string;
+  status: DeadLetterStatus;
+  operatorNotes?: string;
+  operatorActionAt?: string;
+}
+
+export type RetryClassification = 
+  | 'RETRYABLE' 
+  | 'NON_RETRYABLE' 
+  | 'VERIFICATION_REQUIRED' 
+  | 'SECURITY_BLOCK';
+
+export interface RetryPolicy {
+  maxRetries: number;
+  baseBackoffMs: number;
+  maxBackoffMs: number;
+  backoffMultiplier: number;
+  jitter: boolean;
+}
+
+export interface RetryState {
+  currentAttempt: number;
+  nextRetryAt?: number;
+  backoffDelayMs: number;
+  lastError?: string;
+  classification: RetryClassification;
+  isExhausted: boolean;
+}
+
+export type LockTargetType = 'SITE' | 'RESOURCE' | 'TASK' | 'OPERATION';
+export type LockStatus = 'ACQUIRED' | 'WAITING' | 'RELEASED' | 'TIMED_OUT' | 'CONFLICT_BLOCKED';
+
+export interface ResourceLock {
+  id: string;
+  targetType: LockTargetType;
+  resourceKey: string; // e.g. "site:demo-site-1", "resource:page-100", "task:ptask-101"
+  siteId: string;
+  siteName: string;
+  taskId: string;
+  taskTitle: string;
+  operationId: string;
+  ownerToken: string;
+  acquiredAt: string;
+  expiresAt: string;
+  ttlSeconds: number;
+  status: LockStatus;
+  waitingTasks: string[];
+}
+
+export type McpReliabilityState = 
+  | 'DISCONNECTED'
+  | 'CONNECTING'
+  | 'CONNECTED'
+  | 'DEGRADED'
+  | 'AUTHENTICATION_REQUIRED'
+  | 'RECONNECTING'
+  | 'FAILED';
+
+export interface McpConnectionHealth {
+  serverId: string;
+  serverName: string;
+  siteId: string;
+  state: McpReliabilityState;
+  responseTimeMs: number;
+  toolAvailabilityCount: number;
+  authStatus: 'VALID' | 'EXPIRED' | 'MISSING' | 'REVALIDATING';
+  lastSuccessfulRequest: string;
+  lastFailure?: string;
+  consecutiveFailures: number;
+  schemaFingerprint: string;
+  schemaVersion: string;
+  reconnectAttempts: number;
+  lastReconnectedAt?: string;
+}
+
+export type SiteReliabilityHealth = 
+  | 'HEALTHY' 
+  | 'DEGRADED' 
+  | 'UNAVAILABLE' 
+  | 'AUTHENTICATION_ERROR' 
+  | 'CAPABILITY_ERROR' 
+  | 'UNKNOWN';
+
+export interface SiteHealthReport {
+  siteId: string;
+  siteName: string;
+  websiteUrl: string;
+  status: SiteReliabilityHealth;
+  responseTimeMs: number;
+  sslValid: boolean;
+  lastChecked: string;
+  httpStatus: number;
+  wpVersion: string;
+  readOnlyAuditPassed: boolean;
+  notes: string;
+}
+
+export interface TaskRecoveryCheckpoint {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  siteId: string;
+  stepIndex: number;
+  totalSteps: number;
+  boundary: 'PRE_BULK' | 'BATCH_CHUNK' | 'POST_VERIFICATION' | 'INTERRUPTED';
+  timestamp: string;
+  completedStepIds: string[];
+  pendingStepIds: string[];
+  liveStateSnapshot: Record<string, any>;
+  canResumeFromHere: boolean;
+}
+
+export interface IdempotentVerificationResult {
+  operationId: string;
+  targetResource: string;
+  desiredState: string;
+  liveState: string;
+  isAlreadyExecuted: boolean;
+  isSafeToExecute: boolean;
+  recommendation: 'MARK_SUCCESS_NOOP' | 'EXECUTE_MUTATION' | 'INVESTIGATE_CONFLICT' | 'HALT_SAFETY';
+  verifiedAt: string;
+}
+
+export interface ReliabilityTestCase {
+  id: string;
+  name: string;
+  category: 
+    | 'RESTART_RECOVERY'
+    | 'IDEMPOTENT_VERIFY'
+    | 'MCP_RESILIENCE'
+    | 'SCHEMA_REVALIDATION'
+    | 'AUTH_RECOVERY'
+    | 'RETRY_BACKOFF'
+    | 'DEAD_LETTER_QUEUE'
+    | 'RESOURCE_LOCKING'
+    | 'SITE_CONCURRENCY'
+    | 'SECURITY_INVIOLABLE';
+  description: string;
+  status: 'IDLE' | 'RUNNING' | 'PASSED' | 'FAILED';
+  logs: string[];
+  assertionsPassed: number;
+  assertionsTotal: number;
+  durationMs?: number;
+  error?: string;
+}
+
 

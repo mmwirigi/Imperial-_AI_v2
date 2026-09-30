@@ -124,6 +124,13 @@ export const OperationsDashboard: React.FC<OperationsDashboardProps> = ({
         {/* Action Triggers */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
+            onClick={() => onNavigateTab('reliability')}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-750 text-neutral-200 text-xs font-semibold rounded-lg transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
+            Reliability &amp; Self-Healing
+          </button>
+          <button
             onClick={onLaunchBulkModal}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-750 text-neutral-200 text-xs font-semibold rounded-lg transition-colors"
           >

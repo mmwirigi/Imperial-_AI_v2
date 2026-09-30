@@ -9,7 +9,8 @@ import {
   Activity,
   Beaker,
   Database,
-  ShieldAlert
+  ShieldAlert,
+  RotateCcw
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -18,6 +19,7 @@ interface BottomNavProps {
   activeTasksBadgeCount?: number;
   pendingApprovalsBadgeCount?: number;
   securityEventsBadgeCount?: number;
+  reliabilityBadgeCount?: number;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
@@ -26,11 +28,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   activeTasksBadgeCount = 0,
   pendingApprovalsBadgeCount = 0,
   securityEventsBadgeCount = 0,
+  reliabilityBadgeCount = 0,
 }) => {
   const tabs = [
     { id: 'home', label: 'Operations', icon: LayoutDashboard },
     { id: 'tasks', label: 'Task Engine', icon: CheckSquare, badge: activeTasksBadgeCount },
     { id: 'approvals', label: 'Approvals', icon: ShieldCheck, badge: pendingApprovalsBadgeCount },
+    { id: 'reliability', label: 'Reliability', icon: RotateCcw, badge: reliabilityBadgeCount },
     { id: 'bulk', label: 'Bulk Ops', icon: Database },
     { id: 'chat', label: 'Agent Chat', icon: MessageSquare },
     { id: 'security', label: 'Security Log', icon: ShieldAlert, badge: securityEventsBadgeCount },
