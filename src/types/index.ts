@@ -1009,4 +1009,238 @@ export interface ReliabilityTestCase {
   error?: string;
 }
 
+// =========================================================
+// Phase 8: Section 2 - Observability, Monitoring & Alerting
+// =========================================================
+
+export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL';
+
+export type LogEventType = 
+  | 'TASK_CREATED'
+  | 'TASK_STARTED'
+  | 'TASK_PAUSED'
+  | 'TASK_RESUMED'
+  | 'TASK_COMPLETED'
+  | 'TASK_FAILED'
+  | 'MCP_CONNECTED'
+  | 'MCP_DISCONNECTED'
+  | 'MCP_RECONNECTED'
+  | 'AUTHENTICATION_REQUIRED'
+  | 'CAPABILITY_CHANGED'
+  | 'OPERATION_STARTED'
+  | 'OPERATION_COMPLETED'
+  | 'OPERATION_FAILED'
+  | 'VERIFICATION_FAILED'
+  | 'ROLLBACK_STARTED'
+  | 'ROLLBACK_COMPLETED'
+  | 'WRONG_SITE_BLOCKED'
+  | 'APPROVAL_INVALIDATED'
+  | 'ANOMALY_DETECTED'
+  | 'INCIDENT_CREATED'
+  | 'INCIDENT_RESOLVED';
+
+export interface StructuredLogEntry {
+  id: string;
+  timestamp: string;
+  level: LogLevel;
+  eventType: LogEventType;
+  taskId?: string;
+  operationId?: string;
+  clientId: string;
+  siteId: string;
+  siteName: string;
+  connectionId?: string;
+  tool?: string;
+  status: 'SUCCESS' | 'FAILED' | 'BLOCKED' | 'PENDING' | 'RETRYING';
+  durationMs?: number;
+  errorCode?: string;
+  retryCount?: number;
+  verificationStatus?: 'VERIFIED' | 'FAILED' | 'SKIPPED';
+  message: string;
+  payloadRedacted: Record<string, any>;
+  hasRedactedSecrets: boolean;
+}
+
+export interface ExecutionTraceSpan {
+  id: string;
+  type: 'TASK' | 'OPERATION' | 'MCP_REQUEST' | 'MCP_RESPONSE' | 'VERIFICATION' | 'FINAL_RESULT';
+  label: string;
+  timestamp: string;
+  durationMs: number;
+  status: 'SUCCESS' | 'FAILED' | 'SKIPPED' | 'RUNNING';
+  data: Record<string, any>;
+  error?: string;
+}
+
+export interface TaskExecutionTrace {
+  traceId: string;
+  taskId: string;
+  taskTitle: string;
+  siteId: string;
+  siteName: string;
+  startTime: string;
+  endTime?: string;
+  overallDurationMs: number;
+  status: 'SUCCESS' | 'FAILED' | 'PARTIAL';
+  spans: ExecutionTraceSpan[];
+}
+
+export interface ObservabilityMetrics {
+  tasksCreated: number;
+  tasksCompleted: number;
+  tasksFailed: number;
+  tasksPartiallyCompleted: number;
+  avgTaskDurationSeconds: number;
+  avgOperationDurationMs: number;
+  mcpRequestLatencyMs: number;
+  mcpErrorRatePercent: number;
+  totalRetryCount: number;
+  verificationFailuresCount: number;
+  rollbackCount: number;
+  authenticationFailuresCount: number;
+  securityBlocksCount: number;
+  deadLetterCount: number;
+  queueDepth: number;
+  // Computed
+  successRatePercent: number;
+  failureRatePercent: number;
+  verificationSuccessRatePercent: number;
+  avgRecoveryTimeSeconds: number;
+  avgMcpResponseTimeMs: number;
+}
+
+export type AnomalySeverity = 'INFO' | 'WARNING' | 'HIGH' | 'CRITICAL';
+
+export type AnomalyRuleType = 
+  | 'UNEXPECTED_TASK_SIZE'
+  | 'CONSECUTIVE_FAILURES'
+  | 'CAPABILITY_DISAPPEARED'
+  | 'TOOL_SCHEMA_DRIFT'
+  | 'ABNORMAL_DURATION'
+  | 'REPEATED_AUTH_FAILURES'
+  | 'WRONG_SITE_ATTEMPT';
+
+export interface AnomalyEvent {
+  id: string;
+  timestamp: string;
+  ruleType: AnomalyRuleType;
+  severity: AnomalySeverity;
+  siteId: string;
+  siteName: string;
+  taskId?: string;
+  description: string;
+  metricObserved: string;
+  threshold: string;
+  automaticSafetyAction: string;
+  resolved: boolean;
+}
+
+export type IncidentStatus = 'OPEN' | 'INVESTIGATING' | 'MITIGATED' | 'RESOLVED' | 'CLOSED';
+
+export interface IncidentItem {
+  id: string;
+  title: string;
+  severity: AnomalySeverity;
+  siteId: string;
+  siteName: string;
+  clientId: string;
+  startedAt: string;
+  resolvedAt?: string;
+  status: IncidentStatus;
+  eventCount: number;
+  affectedTasks: string[];
+  rootCause: string;
+  resolution?: string;
+  operatorNotes?: string;
+}
+
+export interface AlertItem {
+  id: string;
+  incidentId?: string;
+  clientId: string;
+  siteId: string;
+  siteName: string;
+  taskId?: string;
+  severity: AnomalySeverity;
+  event: string;
+  timestamp: string;
+  recommendedAction: string;
+  isDeduplicated: boolean;
+  duplicateCount: number;
+}
+
+export interface RetentionPolicy {
+  logsRetentionDays: number;
+  metricsRetentionDays: number;
+  tracesRetentionDays: number;
+  incidentsRetentionDays: number;
+  securityEventsImmutable: boolean; // Never auto-purged
+}
+
+// =========================================================
+// Phase 8: Section 3 - Scalability, Disaster Recovery & Chaos
+// =========================================================
+
+export type QueuePriority = 'CRITICAL' | 'HIGH' | 'NORMAL' | 'LOW';
+
+export interface FairQueueItem {
+  taskId: string;
+  taskTitle: string;
+  siteId: string;
+  siteName: string;
+  clientId: string;
+  priority: QueuePriority;
+  enqueuedAt: string;
+  estimatedOperations: number;
+  assignedWorkerId?: string;
+  status: 'QUEUED' | 'EXECUTING' | 'BLOCKED_SITE_CONCURRENCY';
+}
+
+export interface ConcurrencyRateLimitConfig {
+  maxGlobalWorkers: number;
+  maxTasksPerSite: number;
+  maxMcpRequestsPerConnection: number;
+  globalRateLimitPerMin: number;
+  perClientRateLimitPerMin: number;
+  perSiteRateLimitPerMin: number;
+}
+
+export interface DataIntegrityAuditReport {
+  id: string;
+  timestamp: string;
+  passed: boolean;
+  totalRecordsChecked: number;
+  inconsistenciesFound: number;
+  orphanedOperations: string[];
+  stuckTasks: string[];
+  expiredApprovals: string[];
+  missingExecutionRecords: string[];
+  verificationGaps: string[];
+  invalidSiteReferences: string[];
+}
+
+export interface ChaosScenario {
+  id: string;
+  name: string;
+  category: 
+    | 'MCP_FAILURE'
+    | 'NETWORK_FAILURE'
+    | 'APP_CRASH'
+    | 'AUTH_EXPIRATION'
+    | 'SCHEMA_CHANGE'
+    | 'WORDPRESS_FAILURE'
+    | 'VERIFICATION_FAILURE'
+    | 'DUPLICATE_WORKER'
+    | 'WRONG_SITE'
+    | 'APPROVAL_BYPASS'
+    | 'LIMIT_BYPASS'
+    | 'HALLUCINATED_TOOL';
+  description: string;
+  expectedBehavior: string;
+  status: 'IDLE' | 'RUNNING' | 'PASSED' | 'FAILED';
+  logs: string[];
+  assertionsPassed: number;
+  assertionsTotal: number;
+}
+
 

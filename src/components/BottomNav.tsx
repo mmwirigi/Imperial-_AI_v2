@@ -20,6 +20,7 @@ interface BottomNavProps {
   pendingApprovalsBadgeCount?: number;
   securityEventsBadgeCount?: number;
   reliabilityBadgeCount?: number;
+  observabilityBadgeCount?: number;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
@@ -29,16 +30,17 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   pendingApprovalsBadgeCount = 0,
   securityEventsBadgeCount = 0,
   reliabilityBadgeCount = 0,
+  observabilityBadgeCount = 0,
 }) => {
   const tabs = [
     { id: 'home', label: 'Operations', icon: LayoutDashboard },
     { id: 'tasks', label: 'Task Engine', icon: CheckSquare, badge: activeTasksBadgeCount },
     { id: 'approvals', label: 'Approvals', icon: ShieldCheck, badge: pendingApprovalsBadgeCount },
     { id: 'reliability', label: 'Reliability', icon: RotateCcw, badge: reliabilityBadgeCount },
+    { id: 'observability', label: 'Observability', icon: Activity, badge: observabilityBadgeCount },
     { id: 'bulk', label: 'Bulk Ops', icon: Database },
     { id: 'chat', label: 'Agent Chat', icon: MessageSquare },
     { id: 'security', label: 'Security Log', icon: ShieldAlert, badge: securityEventsBadgeCount },
-    { id: 'monitoring', label: 'Monitoring', icon: Activity },
     { id: 'testing', label: 'Test Suite', icon: Beaker },
     { id: 'sites', label: 'Sites', icon: Layers },
     { id: 'settings', label: 'Settings', icon: Settings },
