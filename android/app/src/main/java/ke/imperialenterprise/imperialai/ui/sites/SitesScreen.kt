@@ -98,6 +98,8 @@ fun SitesScreen(
                 SiteCard(
                     site = site,
                     onConfigureMcp = { viewModel.openMcpSetupModal(site) },
+                    onOpenIntelligence = { viewModel.openSiteIntelligence(site) },
+                    onOpenCommands = { viewModel.openCommandPalette(site) },
                     onEdit = { viewModel.openAddEditSiteDialog(site) },
                     onDelete = { viewModel.deleteSite(site.id) },
                     onOpenChat = { onSiteSelectedForChat(site) }
@@ -111,6 +113,31 @@ fun SitesScreen(
                 site = uiState.selectedSiteForEdit,
                 onDismiss = { viewModel.closeAddEditDialog() },
                 onSave = { updatedSite -> viewModel.saveSite(updatedSite) }
+            )
+        }
+
+        // Phase 6: WordPress Site Intelligence Dialog
+        if (uiState.isSiteIntelligenceOpen && uiState.selectedSiteForIntelligence != null) {
+            ke.imperialenterprise.imperialai.ui.components.SiteIntelligenceDialog(
+                site = uiState.selectedSiteForIntelligence!!,
+                profile = uiState.siteProfile,
+                capabilities = uiState.siteCapabilities,
+                findings = uiState.siteFindings,
+                isInspecting = uiState.isInspectingSite,
+                onRunInspection = { viewModel.runInspection(uiState.selectedSiteForIntelligence!!) },
+                onDismiss = { viewModel.closeSiteIntelligence() }
+            )
+        }
+
+        // Phase 6: WordPress Command Palette Dialog
+        if (uiState.isCommandPaletteOpen && uiState.selectedSiteForIntelligence != null) {
+            ke.imperialenterprise.imperialai.ui.components.CommandPaletteDialog(
+                siteName = uiState.selectedSiteForIntelligence!!.siteName,
+                commands = uiState.availableCommands,
+                onSelectCommand = { cmd ->
+                    onSiteSelectedForChat(uiState.selectedSiteForIntelligence!!)
+                },
+                onDismiss = { viewModel.closeCommandPalette() }
             )
         }
 
@@ -150,6 +177,8 @@ fun SitesScreen(
 fun SiteCard(
     site: Site,
     onConfigureMcp: () -> Unit,
+    onOpenIntelligence: () -> Unit,
+    onOpenCommands: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onOpenChat: () -> Unit
@@ -314,6 +343,34 @@ fun SiteCard(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    IconButton(
+                        onClick = onOpenIntelligence,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(ObsidianSurface, RoundedCornerShape(8.dp))
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = "WordPress Intelligence & Stack",
+                            tint = ImperialGoldPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onOpenCommands,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(ObsidianSurface, RoundedCornerShape(8.dp))
+                    ) {
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = "WordPress Commands",
+                            tint = EmeraldPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
                     IconButton(
                         onClick = onOpenChat,
                         modifier = Modifier

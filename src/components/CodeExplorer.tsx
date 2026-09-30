@@ -529,6 +529,67 @@ class SecurityEngineTestSuite {
 }`,
     },
     {
+      path: 'android/app/src/main/java/ke/imperialenterprise/imperialai/domain/wordpress/WordPressAdapter.kt',
+      name: 'WordPressAdapter.kt',
+      category: 'Agent Architecture',
+      description: 'Phase 6 Universal WordPress Intelligence Adapter interface orchestrating 20-stage read-only stack discovery, capability mapping, and the 7-stage operational workflow.',
+      codeSnippet: `package ke.imperialenterprise.imperialai.domain.wordpress
+
+interface WordPressAdapter {
+    fun getSiteProfile(siteId: String): StateFlow<SiteStackProfile?>
+    fun getSiteCapabilities(siteId: String): StateFlow<List<WordPressCapability>>
+    fun getSiteFindings(siteId: String): StateFlow<List<AuditFinding>>
+    fun getAvailableCommands(siteId: String): List<WordPressCommand>
+    suspend fun inspectSite(context: ActiveSiteContext): Result<SiteStackProfile>
+    suspend fun executeWorkflow(
+        context: ActiveSiteContext,
+        taskTitle: String,
+        targetResource: String,
+        auditToolName: String,
+        auditArgs: Map<String, Any?>,
+        mutationToolName: String,
+        mutationArgs: Map<String, Any?>,
+        expectedVerificationState: String,
+        onStageUpdate: (WordPressTask) -> Unit = {}
+    ): Result<WordPressTask>
+}`,
+    },
+    {
+      path: 'android/app/src/main/java/ke/imperialenterprise/imperialai/domain/wordpress/WordPressSiteInspector.kt',
+      name: 'WordPressSiteInspector.kt',
+      category: 'Agent Architecture',
+      description: '100% Read-only discovery inspection engine analyzing WordPress core version, PHP runtime, active theme, page builder, SEO engine, and commerce platform without mutating the target site.',
+      codeSnippet: `package ke.imperialenterprise.imperialai.domain.wordpress
+
+class WordPressSiteInspector(
+    private val toolRegistry: ToolRegistry,
+    private val mcpManager: McpManager,
+    private val siteRepository: SiteRepository,
+    private val auditLogger: AuditLogger? = null
+) {
+    suspend fun inspectSite(context: ActiveSiteContext): Result<InspectionResult>
+}`,
+    },
+    {
+      path: 'android/app/src/test/java/ke/imperialenterprise/imperialai/WordPressIntelligenceTestSuite.kt',
+      name: 'WordPressIntelligenceTestSuite.kt',
+      category: 'Data & Repositories',
+      description: 'Phase 6 test suite verifying heterogeneous stack detection, conservative capability resolution, preflight backup checks, live verification, and the 7-stage operational workflow.',
+      codeSnippet: `package ke.imperialenterprise.imperialai
+
+class WordPressIntelligenceTestSuite {
+    @Test fun testHeterogeneousStackDetection()
+    @Test fun testConservativeCapabilityResolution()
+    @Test fun testReadOnlySiteInspectionGeneratesProfileAndFindings()
+    @Test fun testBackupPreflightCheckPresenceAndAbsence()
+    @Test fun test7StageOperationalWorkflowSuccess()
+    @Test fun testVerificationFailureWhenSiteStateDoesNotReflectOutcome()
+    @Test fun testStrictSiteProfileAndCapabilityIsolation()
+    @Test fun testDynamicCommandRegistry()
+    @Test fun testAiContextBuilderFormatAndInvariants()
+}`,
+    },
+    {
       path: 'android/app/src/main/java/ke/imperialenterprise/imperialai/ui/tasks/TasksScreen.kt',
       name: 'TasksScreen.kt',
       category: 'Jetpack Compose UI',

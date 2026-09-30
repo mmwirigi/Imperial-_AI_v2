@@ -9,6 +9,7 @@ import ke.imperialenterprise.imperialai.domain.agent.ToolRegistry
 import ke.imperialenterprise.imperialai.domain.model.*
 import ke.imperialenterprise.imperialai.domain.repository.McpServerRepository
 import ke.imperialenterprise.imperialai.domain.repository.SiteRepository
+import ke.imperialenterprise.imperialai.domain.wordpress.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -26,7 +27,18 @@ data class SitesUiState(
     val mcpDiscoveredTools: List<McpTool> = emptyList(),
     val maskedBearerToken: String? = null,
     val searchQuery: String = "",
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    // Phase 6: WordPress Intelligence Adapter State
+    val selectedSiteForIntelligence: Site? = null,
+    val siteProfile: SiteStackProfile? = null,
+    val siteCapabilities: List<WordPressCapability> = emptyList(),
+    val siteFindings: List<AuditFinding> = emptyList(),
+    val isInspectingSite: Boolean = false,
+    val isSiteIntelligenceOpen: Boolean = false,
+    val isCommandPaletteOpen: Boolean = false,
+    val availableCommands: List<WordPressCommand> = emptyList(),
+    val activeWorkflowTask: WordPressTask? = null,
+    val workflowActionMessage: String? = null
 )
 
 class SitesViewModel(
@@ -34,7 +46,8 @@ class SitesViewModel(
     private val mcpServerRepository: McpServerRepository,
     private val mcpManager: McpManager,
     private val mcpCredentialManager: McpCredentialManager,
-    private val toolRegistry: ToolRegistry
+    private val toolRegistry: ToolRegistry,
+    private val wordPressAdapter: WordPressAdapter? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SitesUiState(isLoading = true))
@@ -275,6 +288,146 @@ class SitesViewModel(
                 mcpServerRepository.deleteServer(siteId, server.id)
             }
             siteRepository.deleteSite(siteId)
+        }
+    }
+
+    // =========================================================
+    // Phase 6: Universal WordPress Intelligence & Operations
+    // =========================================================
+
+    fun openSiteIntelligence(site: Site) {
+        val adapter = wordPressAdapter
+        val profile = adapter?.getSiteProfile(site.id)?.value
+        val capabilities = adapter?.getSiteCapabilities(site.id)?.value ?: emptyList()
+        val findings = adapter?.getSiteFindings(site.id)?.value ?: emptyList()
+
+        _uiState.update {
+            it.copy(
+                selectedSiteForIntelligence = site,
+                siteProfile = profile,
+                siteCapabilities = capabilities,
+                siteFindings = findings,
+                isSiteIntelligenceOpen = true
+            )
+        }
+    }
+
+    fun closeSiteIntelligence() {
+        _uiState.update {
+            it.copy(
+                selectedSiteForIntelligence = null,
+                isSiteIntelligenceOpen = false
+            )
+        }
+    }
+
+    fun runInspection(site: Site) {
+        val adapter = wordPressAdapter ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isInspectingSite = true) }
+
+            val server = mcpServerRepository.getServerForSite(site.id)
+            val context = ActiveSiteContext(
+                siteId = site.id,
+                siteName = site.siteName,
+                websiteUrl = site.websiteUrl,
+                activeMcpServerId = server?.id
+            )
+
+            val result = adapter.inspectSite(context)
+            if (result.isSuccess) {
+                val profile = result.getOrThrow()
+                val caps = adapter.getSiteCapabilities(site.id).value
+                val finds = adapter.getSiteFindings(site.id).value
+
+                _uiState.update {
+                    it.copy(
+                        isInspectingSite = false,
+                        siteProfile = profile,
+                        siteCapabilities = caps,
+                        siteFindings = finds,
+                        mcpActionMessage = "Site stack discovery completed successfully. ${caps.size} capabilities mapped."
+                    )
+                }
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "Inspection failed"
+                _uiState.update {
+                    it.copy(
+                        isInspectingSite = false,
+                        mcpActionMessage = "Inspection failed: $err"
+                    )
+                }
+            }
+        }
+    }
+
+    fun openCommandPalette(site: Site) {
+        val adapter = wordPressAdapter
+        val commands = adapter?.getAvailableCommands(site.id) ?: emptyList()
+
+        _uiState.update {
+            it.copy(
+                selectedSiteForIntelligence = site,
+                availableCommands = commands,
+                isCommandPaletteOpen = true
+            )
+        }
+    }
+
+    fun closeCommandPalette() {
+        _uiState.update {
+            it.copy(isCommandPaletteOpen = false)
+        }
+    }
+
+    fun executeWorkflowTask(
+        site: Site,
+        taskTitle: String,
+        targetResource: String,
+        auditToolName: String,
+        auditArgs: Map<String, Any?>,
+        mutationToolName: String,
+        mutationArgs: Map<String, Any?>,
+        expectedVerificationState: String
+    ) {
+        val adapter = wordPressAdapter ?: return
+        viewModelScope.launch {
+            val server = mcpServerRepository.getServerForSite(site.id)
+            val context = ActiveSiteContext(
+                siteId = site.id,
+                siteName = site.siteName,
+                websiteUrl = site.websiteUrl,
+                activeMcpServerId = server?.id
+            )
+
+            val result = adapter.executeWorkflow(
+                context = context,
+                taskTitle = taskTitle,
+                targetResource = targetResource,
+                auditToolName = auditToolName,
+                auditArgs = auditArgs,
+                mutationToolName = mutationToolName,
+                mutationArgs = mutationArgs,
+                expectedVerificationState = expectedVerificationState,
+                onStageUpdate = { stageTask ->
+                    _uiState.update { it.copy(activeWorkflowTask = stageTask) }
+                }
+            )
+
+            if (result.isSuccess) {
+                val completedTask = result.getOrThrow()
+                _uiState.update {
+                    it.copy(
+                        activeWorkflowTask = completedTask,
+                        workflowActionMessage = "Workflow completed successfully!"
+                    )
+                }
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "Workflow failed"
+                _uiState.update {
+                    it.copy(workflowActionMessage = "Workflow failed: $err")
+                }
+            }
         }
     }
 }

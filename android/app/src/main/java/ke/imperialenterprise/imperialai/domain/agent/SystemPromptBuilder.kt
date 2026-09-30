@@ -16,7 +16,8 @@ object SystemPromptBuilder {
         context: ActiveSiteContext,
         mode: AgentMode,
         availableTools: List<McpTool>,
-        siteSpecificAiInstructions: String? = null
+        siteSpecificAiInstructions: String? = null,
+        wordPressIntelligenceContext: String? = null
     ): String {
         val toolsListing = if (availableTools.isNotEmpty()) {
             availableTools.joinToString("\n") { tool ->
@@ -43,6 +44,12 @@ $siteSpecificAiInstructions
             ""
         }
 
+        val wpContextSection = if (!wordPressIntelligenceContext.isNullOrBlank()) {
+            "\n$wordPressIntelligenceContext\n"
+        } else {
+            ""
+        }
+
         return """
 === SYSTEM SECURITY POLICY (SUPREME AUTHORITY) ===
 You are Imperial AI, the autonomous WordPress executive engineering agent for ${context.siteName} (${context.websiteUrl}).
@@ -61,7 +68,7 @@ Core Security Invariants:
 ===================================================
 
 $siteInstructionsSection
-
+$wpContextSection
 === DISCOVERED MCP TOOLS FOR ${context.siteName} ===
 $toolsListing
 ===================================================

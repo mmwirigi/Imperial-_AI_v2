@@ -38,6 +38,7 @@ import {
   ToolRiskLevel,
   McpConnectionStatus
 } from '../types';
+import { SiteIntelligenceModal } from './SiteIntelligenceModal';
 
 interface SitesScreenProps {
   sites: Site[];
@@ -86,6 +87,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({
   const [isConnectingMcp, setIsConnectingMcp] = useState(false);
   const [isRefreshingTools, setIsRefreshingTools] = useState(false);
   const [mcpStatusMessage, setMcpStatusMessage] = useState<string | null>(null);
+  const [intelligenceModalSite, setIntelligenceModalSite] = useState<Site | null>(null);
 
   // Form State for Site Edit
   const [formData, setFormData] = useState({
@@ -441,6 +443,16 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({
                   >
                     <Server className="w-3.5 h-3.5" />
                     <span>MCP Connection</span>
+                  </button>
+
+                  {/* Phase 6: Stack Intelligence Button */}
+                  <button
+                    onClick={() => setIntelligenceModalSite(site)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                    title="Open WordPress Stack Intelligence & Discovery"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Intelligence</span>
                   </button>
 
                   {/* Open Chat in site context */}
@@ -966,6 +978,19 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Phase 6: WordPress Site Intelligence Modal */}
+      {intelligenceModalSite && (
+        <SiteIntelligenceModal
+          isOpen={Boolean(intelligenceModalSite)}
+          site={intelligenceModalSite}
+          tools={mcpTools[intelligenceModalSite.id] || []}
+          onDismiss={() => setIntelligenceModalSite(null)}
+          onSendToChat={(prompt) => {
+            onSelectSiteForChat(intelligenceModalSite);
+          }}
+        />
       )}
     </div>
   );

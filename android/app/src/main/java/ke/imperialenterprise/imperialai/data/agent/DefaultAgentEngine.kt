@@ -31,7 +31,8 @@ class DefaultAgentEngine(
     private val credentialStore: CredentialStore,
     private val auditLogger: AuditLogger,
     private val agentRunRepository: AgentRunRepository = InMemoryAgentRunRepository(),
-    private val approvalEngine: ApprovalEngine = DefaultApprovalEngine(auditLogger)
+    private val approvalEngine: ApprovalEngine = DefaultApprovalEngine(auditLogger),
+    private val wordPressAdapter: ke.imperialenterprise.imperialai.domain.wordpress.WordPressAdapter? = null
 ) : AgentEngine {
 
     private val toolSecurityValidator = ToolSecurityValidator(
@@ -123,13 +124,24 @@ class DefaultAgentEngine(
                 )
             }
 
-            // Step 2: System prompt building with separation
+            // Step 2: System prompt building with separation & WordPress Intelligence
             val site = siteRepository.getSiteById(context.siteId)
+            val wpProfile = wordPressAdapter?.getSiteProfile(context.siteId)?.value
+            val wpCapabilities = wordPressAdapter?.getSiteCapabilities(context.siteId)?.value ?: emptyList()
+            val wpContextText = if (wpProfile != null || wpCapabilities.isNotEmpty()) {
+                ke.imperialenterprise.imperialai.domain.wordpress.WordPressContextBuilder.buildAiContext(
+                    context = context,
+                    profile = wpProfile,
+                    capabilities = wpCapabilities
+                )
+            } else null
+
             val systemPrompt = SystemPromptBuilder.buildSystemPrompt(
                 context = context,
                 mode = mode,
                 availableTools = siteTools,
-                siteSpecificAiInstructions = site?.aiInstructions
+                siteSpecificAiInstructions = site?.aiInstructions,
+                wordPressIntelligenceContext = wpContextText
             )
 
             // Step 3: Conversation context

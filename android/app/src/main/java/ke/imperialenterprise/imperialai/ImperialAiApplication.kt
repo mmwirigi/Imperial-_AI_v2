@@ -62,6 +62,8 @@ class ImperialAiApplication : Application() {
         private set
     lateinit var agentEngine: ke.imperialenterprise.imperialai.domain.agent.AgentEngine
         private set
+    lateinit var wordPressAdapter: ke.imperialenterprise.imperialai.domain.wordpress.WordPressAdapter
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -94,6 +96,16 @@ class ImperialAiApplication : Application() {
             auditLogger = auditLogger
         )
 
+        // Phase 6: WordPress Intelligence Adapter
+        wordPressAdapter = ke.imperialenterprise.imperialai.data.wordpress.DefaultWordPressAdapter(
+            toolRegistry = toolRegistry,
+            mcpManager = mcpManager,
+            siteRepository = siteRepository,
+            permissionEngine = permissionEngine,
+            approvalEngine = approvalEngine,
+            auditLogger = auditLogger
+        )
+
         // Phase 4: AI + MCP Agent Engine
         agentRunRepository = InMemoryAgentRunRepository()
         agentEngine = ke.imperialenterprise.imperialai.data.agent.DefaultAgentEngine(
@@ -107,7 +119,8 @@ class ImperialAiApplication : Application() {
             credentialStore = credentialStore,
             auditLogger = auditLogger,
             agentRunRepository = agentRunRepository,
-            approvalEngine = approvalEngine
+            approvalEngine = approvalEngine,
+            wordPressAdapter = wordPressAdapter
         )
     }
 }

@@ -71,7 +71,8 @@ fun ImperialAiApp(app: ImperialAiApplication) {
             app.mcpServerRepository,
             app.mcpManager,
             app.mcpCredentialManager,
-            app.toolRegistry
+            app.toolRegistry,
+            app.wordPressAdapter
         )
     }
     val tasksViewModel = viewModel {

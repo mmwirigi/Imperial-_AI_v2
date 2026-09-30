@@ -275,3 +275,131 @@ export interface AuditEvent {
   approvalStatus: string;
   isSuccess: boolean;
 }
+
+// =========================================================
+// Phase 6: Universal WordPress Intelligence Adapter Types
+// =========================================================
+
+export interface SiteStackProfile {
+  siteId: string;
+  siteName: string;
+  siteUrl: string;
+  wordpressVersion?: string | null;
+  phpVersion?: string | null;
+  themeName?: string | null;
+  activePlugins: string[];
+  pageBuilder?: string | null;
+  seoPlugin?: string | null;
+  formsPlugin?: string | null;
+  commercePlatform?: string | null;
+  learningPlatform?: string | null;
+  bookingPlatform?: string | null;
+  backupPlugin?: string | null;
+  mcpCapabilities: string[];
+  lastInspectedAt: number;
+}
+
+export type CapabilityCategory = 
+  | 'SITE'
+  | 'CONTENT'
+  | 'PAGES'
+  | 'POSTS'
+  | 'MEDIA'
+  | 'USERS'
+  | 'SEO'
+  | 'FORMS'
+  | 'PLUGINS'
+  | 'THEMES'
+  | 'BACKUPS'
+  | 'WOOCOMMERCE'
+  | 'LEARNPRESS'
+  | 'BOOKING'
+  | 'ELEMENTOR'
+  | 'OTHER';
+
+export interface WordPressCapability {
+  id: string;
+  name: string;
+  category: CapabilityCategory;
+  description: string;
+  available: boolean;
+  mcpToolNames: string[];
+  riskLevel: ToolRiskLevel;
+  requiresApproval: boolean;
+}
+
+export interface AuditFinding {
+  id: string;
+  siteId: string;
+  category: string;
+  severity: 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  title: string;
+  description: string;
+  evidence: string;
+  recommendation: string;
+}
+
+export interface WordPressCommand {
+  id: string;
+  title: string;
+  description: string;
+  category: CapabilityCategory;
+  requiredCapabilityId: string;
+  promptTemplate: string;
+  isDestructive?: boolean;
+}
+
+export type WorkflowStage = 
+  | 'AUDIT'
+  | 'PROPOSE'
+  | 'APPROVAL_PENDING'
+  | 'BACKUP'
+  | 'IMPLEMENT'
+  | 'VERIFY'
+  | 'REPORT'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export interface ChangeProposal {
+  id: string;
+  siteId: string;
+  taskId: string;
+  operation: string;
+  target: string;
+  currentState: string;
+  proposedState: string;
+  reason: string;
+  requiresApproval: boolean;
+}
+
+export interface VerificationResult {
+  success: boolean;
+  siteId: string;
+  tool: string;
+  target: string;
+  expectedState: string;
+  actualState: string;
+  differences: string;
+  verifiedAt: number;
+}
+
+export interface WordPressTask {
+  id: string;
+  siteId: string;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  workflowStage: WorkflowStage;
+  riskLevel: ToolRiskLevel;
+  affectedResources: string[];
+  proposedChanges?: ChangeProposal | null;
+  approvalRequestId?: string | null;
+  backupCheckpointId?: string | null;
+  executionSummary?: string | null;
+  verificationSummary?: VerificationResult | null;
+  report?: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
