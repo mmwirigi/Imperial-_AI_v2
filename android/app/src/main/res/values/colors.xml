@@ -1,0 +1,8 @@
+<resources>
+    <!-- Imperial Brand Colors (Obsidian & Amber Gold) -->
+    <color name="imperial_primary">#F59E0B</color>
+    <color name="imperial_on_primary">#000000</color>
+    <color name="imperial_surface_dark">#0A0A0A</color>
+    <color name="imperial_surface_card">#171717</color>
+    <color name="imperial_surface_border">#262626</color>
+</resources>

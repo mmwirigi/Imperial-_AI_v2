@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">IMPERIAL AI</string>
+    <string name="app_subtitle">WordPress AI Command Center</string>
+    <string name="company_name">Imperial Enterprise Kenya</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_sites">Sites</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Quick Actions -->
+    <string name="action_audit_site">Audit Site</string>
+    <string name="action_new_task">New Task</string>
+    <string name="action_open_chat">Open Chat</string>
+    <string name="action_manage_sites">Manage Sites</string>
+</resources>

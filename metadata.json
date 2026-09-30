@@ -1,0 +1,6 @@
+{
+  "name": "IMPERIAL AI",
+  "description": "WordPress AI Command Center - Private internal operations dashboard for Imperial Enterprise Kenya.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
