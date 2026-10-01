@@ -44,6 +44,7 @@ export interface PermissionPolicy {
 
 export interface Site {
   id: string;
+  tenantId?: string;
   siteName: string;
   websiteUrl: string;
   clientCompanyName: string;
@@ -79,6 +80,8 @@ export type TaskCategory =
 
 export interface Task {
   id: string;
+  tenantId?: string;
+  clientId?: string;
   title: string;
   description: string;
   siteId: string;
@@ -265,16 +268,24 @@ export interface ConnectionTestReport {
 
 export interface AuditEvent {
   id: string;
+  tenantId?: string;
+  clientId?: string;
+  userId?: string;
+  operatorId?: string;
   timestamp: string;
-  siteId: string;
-  siteName: string;
-  userAction: string;
-  aiAction: string;
-  tool: string;
-  parametersSummary: string;
-  resultSummary: string;
-  approvalStatus: string;
-  isSuccess: boolean;
+  siteId?: string;
+  siteName?: string;
+  userAction?: string;
+  aiAction?: string;
+  tool?: string;
+  parametersSummary?: string;
+  resultSummary?: string;
+  approvalStatus?: string;
+  isSuccess?: boolean;
+  eventType?: string;
+  severity?: 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  title?: string;
+  details?: string;
 }
 
 // =========================================================
@@ -512,6 +523,8 @@ export type TaskHealthCategory =
 
 export type SecurityEventType =
   | 'WRONG_SITE_EXECUTION_BLOCKED'
+  | 'CROSS_CLIENT_EXECUTION_BLOCKED'
+  | 'CROSS_TENANT_BLOCKED'
   | 'APPROVAL_INVALIDATED'
   | 'UNAUTHORIZED_OPERATION'
   | 'CAPABILITY_MISMATCH'
@@ -522,13 +535,18 @@ export type SecurityEventType =
 
 export interface SecurityEventItem {
   id: string;
+  tenantId?: string;
   timestamp: string;
   eventType: SecurityEventType;
-  siteId: string;
-  siteName: string;
-  clientId: string;
+  siteId?: string;
+  siteName?: string;
+  clientId?: string;
   taskId?: string;
-  details: string;
+  details?: string;
+  description?: string;
+  threatActor?: string;
+  ipAddress?: string;
+  mitigationAction?: string;
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   resolved: boolean;
 }
@@ -582,6 +600,7 @@ export interface ProductionTaskStep {
 
 export interface ProductionTask {
   id: string;
+  tenantId?: string;
   clientId: string;
   siteId: string;
   siteName: string;
@@ -657,6 +676,7 @@ export interface BulkOperationBatch {
 
 export interface AdvancedApprovalItem {
   id: string;
+  tenantId?: string;
   userId: string;
   taskId: string;
   stepId?: string;
@@ -1282,6 +1302,458 @@ export interface DisasterRecoveryScenario {
   status: 'READY' | 'RECOVERING' | 'RECOVERED' | 'FAILED';
   outcome: string;
   lastSimulated?: string;
+}
+
+// =========================================================
+// Phase 9: Multi-Tenant Client Platform & SaaS Architecture
+// =========================================================
+
+export type OrganizationTier = 'ENTERPRISE' | 'AGENCY' | 'GROWTH' | 'STARTER';
+export type OrganizationStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING_SETUP' | 'DEACTIVATED' | 'TRIAL' | 'ARCHIVED';
+
+export interface OrganizationSettings {
+  maxClients: number;
+  maxSites: number;
+  maxConcurrentTasks: number;
+  enforceApprovalForHighRisk: boolean;
+  mcpRateLimitPerMin: number;
+  dataRetentionDays: number;
+  allowedDomains?: string[];
+  enforceMfa?: boolean;
+}
+
+export interface Organization {
+  id: string; // tenant_id e.g. 'org-imperial-kenya', 'org-acme-global'
+  name: string;
+  slug: string;
+  tier: OrganizationTier;
+  status: OrganizationStatus;
+  createdAt: string;
+  contactEmail: string;
+  billingPlan: {
+    planName: string;
+    billingCycle: 'MONTHLY' | 'ANNUAL';
+    status: 'ACTIVE' | 'PAST_DUE' | 'TRIALING';
+    renewalDate: string;
+    mcpQuotaPerMonth: number;
+    usedMcpThisMonth: number;
+  };
+  settings: OrganizationSettings;
+}
+
+export interface ClientCompany {
+  id: string; // client_id e.g. 'client-chichi-exim', 'client-juba-raha'
+  organizationId: string; // tenant_id
+  tenantId?: string; // alias for organizationId
+  name: string;
+  slug: string;
+  industry: string;
+  contactEmail: string;
+  contactPerson?: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  createdAt: string;
+  siteIds: string[];
+  mcpConnectionIds: string[];
+  customAiInstructions?: string;
+  assignedManager?: string;
+}
+
+export type TenantRole = 
+  | 'OWNER'
+  | 'ADMIN'
+  | 'OPERATOR'
+  | 'EDITOR'
+  | 'VIEWER'
+  | 'AUDITOR';
+
+export type UserPermission = 
+  | 'VIEW_SITES'
+  | 'MANAGE_SITES'
+  | 'VIEW_TASKS'
+  | 'CREATE_TASKS'
+  | 'APPROVE_TASKS'
+  | 'EXECUTE_TASKS'
+  | 'MANAGE_CONNECTIONS'
+  | 'VIEW_AUDIT'
+  | 'MANAGE_USERS'
+  | 'MANAGE_BILLING'
+  | 'MANAGE_SECURITY';
+
+export interface TenantUser {
+  id: string; // user_id e.g. 'usr-martin-mwirigi', 'usr-sarah-auditor'
+  email: string;
+  displayName: string;
+  avatarUrl?: string;
+  isPlatformAdmin?: boolean; // platform-level admin for Imperial AI Enterprise
+  activeOrganizationId: string;
+  activeClientId?: string;
+  activeSiteId?: string;
+  createdAt: string;
+  lastLogin: string;
+}
+
+export interface Membership {
+  id: string;
+  organizationId: string; // tenant_id
+  userId: string;
+  role: TenantRole;
+  permissions: UserPermission[];
+  status: 'ACTIVE' | 'INVITED' | 'SUSPENDED';
+  joinedAt: string;
+  invitedBy?: string;
+}
+
+export interface ActiveTenantContext {
+  organization: Organization;
+  client: ClientCompany;
+  site: Site | null;
+  user: TenantUser;
+  membership: Membership;
+  permissions: UserPermission[];
+  connectionStatus: McpStatus;
+  switchTimestamp?: string;
+}
+
+export interface TenantContextSwitchEvent {
+  id: string;
+  timestamp: string;
+  userId: string;
+  previousOrganizationId: string;
+  previousClientId: string;
+  previousSiteId?: string;
+  targetOrganizationId: string;
+  targetClientId: string;
+  targetSiteId?: string;
+  transientMemoryPurged: boolean;
+  activeTasksPausedCount: number;
+  status: 'SUCCESS' | 'REJECTED_UNAUTHORIZED' | 'FAILED';
+  reason?: string;
+}
+
+export interface Phase9TestCase {
+  id: string;
+  name: string;
+  category: 
+    | 'TENANT_ISOLATION'
+    | 'CLIENT_ISOLATION'
+    | 'SITE_ISOLATION'
+    | 'CONNECTION_ISOLATION'
+    | 'CONVERSATION_ISOLATION'
+    | 'CREDENTIAL_ISOLATION'
+    | 'ROLE_PERMISSIONS'
+    | 'API_PROTECTION'
+    | 'DATABASE_ISOLATION'
+    | 'CONTEXT_SWITCH';
+  description: string;
+  expectedBehavior: string;
+  status: 'IDLE' | 'RUNNING' | 'PASSED' | 'FAILED';
+  logs: string[];
+  assertionsPassed: number;
+  assertionsTotal: number;
+  durationMs?: number;
+}
+
+export interface TenantIsolationAuditReport {
+  id: string;
+  timestamp: string;
+  passed: boolean;
+  totalChecks: number;
+  violationsFound: number;
+  crossTenantSiteLeaks: string[];
+  crossTenantTaskLeaks: string[];
+  crossTenantAuditLeaks: string[];
+  crossClientConnectionMismatches: string[];
+  orphanedClientResources: string[];
+}
+
+// =========================================================
+// Phase 9: Section 2 - SaaS Architecture & Platform Controls
+// =========================================================
+
+export interface SiteCapabilityBaseline {
+  id: string;
+  siteId: string;
+  siteName: string;
+  tenantId: string;
+  clientId: string;
+  capturedAt: string;
+  wordpressVersion?: string | null;
+  phpVersion?: string | null;
+  seoPlugin: string;
+  pageBuilder: string;
+  ecommerce: string;
+  lms: string;
+  booking: string;
+  backupCapability: boolean;
+  rollbackCapability: boolean;
+  capabilitiesList: string[];
+  mcpToolsHash: string;
+  mcpServerVersion: string;
+  status: 'ACTIVE' | 'DRIFTED' | 'REVALIDATION_REQUIRED';
+  lastRevalidatedAt: string;
+}
+
+export interface CapabilityChangeEvent {
+  id: string;
+  timestamp: string;
+  siteId: string;
+  siteName: string;
+  tenantId: string;
+  clientId: string;
+  previousCapabilities: string[];
+  currentCapabilities: string[];
+  missingCapabilities: string[];
+  flag: 'CAPABILITY_CHANGED';
+  actionTaken: 'PAUSE_TASK_AND_REVALIDATE';
+  affectedTaskIds: string[];
+  resolved: boolean;
+}
+
+export type ClientOnboardingStepId =
+  | 'CREATE_ORGANIZATION'
+  | 'CREATE_CLIENT'
+  | 'ADD_USERS'
+  | 'ADD_SITE'
+  | 'CONNECT_MCP'
+  | 'VERIFY_CONNECTION'
+  | 'DISCOVER_CAPABILITIES'
+  | 'CREATE_BASELINE'
+  | 'READY';
+
+export interface ClientOnboardingStep {
+  id: ClientOnboardingStepId;
+  stepNumber: number;
+  title: string;
+  description: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+  timestamp?: string;
+  details?: string;
+}
+
+export interface ClientOnboardingSession {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  clientName: string;
+  organizationName: string;
+  siteUrl: string;
+  currentStepIndex: number;
+  steps: ClientOnboardingStep[];
+  isReady: boolean;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface UsageRecord {
+  id: string;
+  timestamp: string;
+  tenantId: string;
+  clientId: string;
+  siteId?: string;
+  userId?: string;
+  taskId?: string;
+  operationId?: string;
+  aiRequests: number;
+  aiTokensEstimated: number;
+  mcpCalls: number;
+  wpMutations: number;
+  readOperations: number;
+  bulkOperations: number;
+  tasksCompleted: number;
+  tasksFailed: number;
+  storageUsedBytes: number;
+}
+
+export interface TenantUsageSummary {
+  tenantId: string;
+  organizationName: string;
+  clientId?: string;
+  periodStart: string;
+  periodEnd: string;
+  totalAiRequests: number;
+  totalAiTokensEstimated: number;
+  totalMcpCalls: number;
+  totalWpMutations: number;
+  totalReadOperations: number;
+  totalBulkOperations: number;
+  totalTasksCompleted: number;
+  totalTasksFailed: number;
+  activeSitesCount: number;
+  activeUsersCount: number;
+  storageUsedMb: number;
+}
+
+export type SubscriptionTier = 
+  | 'INTERNAL' 
+  | 'STARTER' 
+  | 'PROFESSIONAL' 
+  | 'AGENCY' 
+  | 'ENTERPRISE';
+
+export type TenantFeatureFlag =
+  | 'BULK_OPERATIONS'
+  | 'AUTOMATED_TASKS'
+  | 'ADVANCED_SEO'
+  | 'WOOCOMMERCE_OPERATIONS'
+  | 'ANALYTICS'
+  | 'ADVANCED_MONITORING'
+  | 'API_ACCESS'
+  | 'TEAM_MANAGEMENT';
+
+export interface SaaSPlan {
+  tier: SubscriptionTier;
+  name: string;
+  description: string;
+  maxClients: number;
+  maxSites: number;
+  maxUsers: number;
+  maxOperationsPerMonth: number;
+  maxTasksPerMonth: number;
+  maxMcpConnections: number;
+  maxAiUsageRequests: number;
+  retentionDays: number;
+  featureFlags: TenantFeatureFlag[];
+}
+
+export interface LimitEnforcementStatus {
+  status: 'WITHIN_LIMIT' | 'LIMIT_REACHED';
+  currentUsage: number;
+  allowedLimit: number;
+  affectedFeature: string;
+  requiredAction: string;
+  blocked: boolean;
+}
+
+export interface InternalApiRequest {
+  authenticatedUserId: string;
+  tenantId: string;
+  clientId: string;
+  resource: string;
+  operation: string;
+  requiredPermissions: UserPermission[];
+  securityPolicy: string;
+  payload: Record<string, any>;
+}
+
+export interface InternalApiResponse {
+  success: boolean;
+  statusCode: number;
+  data?: any;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+  tenantId: string;
+  auditId: string;
+}
+
+export type WebhookEventType =
+  | 'task.completed'
+  | 'task.failed'
+  | 'site.connected'
+  | 'site.disconnected'
+  | 'mcp.status_changed'
+  | 'capability.changed'
+  | 'security.event'
+  | 'incident.opened'
+  | 'incident.resolved';
+
+export interface InternalWebhookEvent {
+  id: string;
+  timestamp: string;
+  tenantId: string;
+  clientId: string;
+  siteId?: string;
+  eventType: WebhookEventType;
+  payload: Record<string, any>;
+  delivered: boolean;
+  destinationUrl?: string;
+}
+
+export interface ClientActivityLogItem {
+  id: string;
+  timestamp: string;
+  tenantId: string;
+  clientId: string;
+  userId: string;
+  userEmail: string;
+  action: string;
+  siteName?: string;
+  taskId?: string;
+  time: string;
+  result: 'SUCCESS' | 'FAILURE' | 'BLOCKED';
+  securityStatus: 'NOMINAL' | 'ELEVATED' | 'BLOCKED';
+}
+
+export interface PlatformAdminAuditItem {
+  id: string;
+  timestamp: string;
+  adminUserId: string;
+  adminEmail: string;
+  actionType: 
+    | 'TENANT_CREATED' 
+    | 'TENANT_SUSPENDED' 
+    | 'USER_ROLE_CHANGED' 
+    | 'SITE_ATTACHED' 
+    | 'CONNECTION_REMOVED' 
+    | 'PLAN_CHANGED' 
+    | 'FEATURE_CHANGED' 
+    | 'SECURITY_OVERRIDE_REJECTED';
+  targetTenantId: string;
+  targetClientId?: string;
+  details: string;
+  ipAddress: string;
+}
+
+export interface TenantExportBundle {
+  tenantId: string;
+  organizationName: string;
+  exportedAt: string;
+  exportedBy: string;
+  organizations: Organization[];
+  clients: ClientCompany[];
+  sites: Site[];
+  tasks: ProductionTask[];
+  reports: any[];
+  auditHistory: AuditEvent[];
+  usage: TenantUsageSummary;
+  scrubbedSecrets: boolean;
+}
+
+export interface TenantDeletionConfirmation {
+  tenantId: string;
+  requestedBy: string;
+  authenticated: boolean;
+  explicitConfirmationPhrase: string;
+  reason: string;
+  status: 'CONFIRMED' | 'REJECTED';
+}
+
+export interface ClientHealthReport {
+  clientId: string;
+  clientName: string;
+  tenantId: string;
+  healthScore: number;
+  status: 'OPTIMAL' | 'DEGRADED' | 'CRITICAL';
+  mcpConnectivity: 'ALL_CONNECTED' | 'PARTIAL' | 'DISCONNECTED';
+  siteAvailabilityPct: number;
+  recentFailuresCount: number;
+  verificationFailuresCount: number;
+  pendingTasksCount: number;
+  openIncidentsCount: number;
+  capabilityDriftCount: number;
+  lastAssessedAt: string;
+}
+
+export interface Phase9AcceptanceChecklistItem {
+  id: string;
+  section: 'TENANT_FOUNDATION' | 'ISOLATION_CONTROLS' | 'ONBOARDING_LIFECYCLE' | 'SAAS_OPERATIONS' | 'SECURITY_VALIDATION';
+  title: string;
+  requirementNumber: number;
+  status: 'VERIFIED' | 'PENDING';
+  verifiedAt?: string;
+  notes: string;
 }
 
 

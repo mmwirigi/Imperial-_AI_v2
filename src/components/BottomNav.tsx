@@ -10,7 +10,8 @@ import {
   Beaker,
   Database,
   ShieldAlert,
-  RotateCcw
+  RotateCcw,
+  Building2
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -41,6 +42,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     { id: 'bulk', label: 'Bulk Ops', icon: Database },
     { id: 'chat', label: 'Agent Chat', icon: MessageSquare },
     { id: 'security', label: 'Security Log', icon: ShieldAlert, badge: securityEventsBadgeCount },
+    { id: 'tenants', label: 'Tenants & SaaS', icon: Building2 },
     { id: 'testing', label: 'Test Suite', icon: Beaker },
     { id: 'sites', label: 'Sites', icon: Layers },
     { id: 'settings', label: 'Settings', icon: Settings },

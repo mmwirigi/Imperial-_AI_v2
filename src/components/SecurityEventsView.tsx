@@ -37,10 +37,12 @@ export const SecurityEventsView: React.FC<SecurityEventsViewProps> = ({
     : events;
 
   const filteredEvents = siteEvents.filter((e) => {
+    const detailsStr = e.details || e.description || '';
+    const siteNameStr = e.siteName || '';
     const matchesSearch = 
-      e.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      detailsStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
       e.eventType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.siteName.toLowerCase().includes(searchTerm.toLowerCase());
+      siteNameStr.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesSeverity = selectedSeverity === 'ALL' || e.severity === selectedSeverity;
     const matchesType = selectedType === 'ALL' || e.eventType === selectedType;
@@ -198,7 +200,7 @@ export const SecurityEventsView: React.FC<SecurityEventsViewProps> = ({
               </div>
 
               <p className="text-xs text-neutral-300 leading-relaxed pl-6">
-                {evt.details}
+                {evt.details || evt.description}
               </p>
 
               {evt.taskId && (

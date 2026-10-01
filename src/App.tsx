@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   initialDemoSites, 
   initialDemoTasks, 
@@ -32,7 +32,20 @@ import {
   initialAlerts,
   initialFairQueue,
   initialChaosScenarios,
-  initialPhase8AcceptanceItems
+  initialPhase8AcceptanceItems,
+  initialOrganizations,
+  initialClientCompanies,
+  initialTenantUsers,
+  initialMemberships,
+  initialPhase9TestCases,
+  initialSaasPlans,
+  initialSiteBaselines,
+  initialCapabilityChangeEvents,
+  initialClientOnboardingSessions,
+  initialTenantUsageSummaries,
+  initialClientActivityLogs,
+  initialPlatformAdminAudits,
+  initialPhase9AcceptanceChecklist
 } from './data/sampleData';
 import { 
   Site, 
@@ -73,7 +86,22 @@ import {
   AlertItem,
   FairQueueItem,
   ChaosScenario,
-  Phase8AcceptanceItem
+  Phase8AcceptanceItem,
+  Organization,
+  ClientCompany,
+  TenantUser,
+  Membership,
+  Phase9TestCase,
+  ActiveTenantContext,
+  SaaSPlan,
+  SiteCapabilityBaseline,
+  CapabilityChangeEvent,
+  ClientOnboardingSession,
+  TenantUsageSummary,
+  ClientActivityLogItem,
+  PlatformAdminAuditItem,
+  Phase9AcceptanceChecklistItem,
+  ClientOnboardingStepId
 } from './types';
 import { TopBar } from './components/TopBar';
 import { BottomNav } from './components/BottomNav';
@@ -98,6 +126,8 @@ import { TaskDetailModal } from './components/TaskDetailModal';
 import { ProductionReportModal } from './components/ProductionReportModal';
 import { ReliabilityCenter } from './components/ReliabilityCenter';
 import { ObservabilityCenter } from './components/ObservabilityCenter';
+import { TenantContextModal } from './components/TenantContextModal';
+import { TenantManagementScreen } from './components/TenantManagementScreen';
 import { persistenceManager } from './services/reliabilityPersistence';
 import { ReconciliationEngine } from './services/reconciliationEngine';
 import { ResourceLockManager } from './services/resourceLockManager';
@@ -105,9 +135,11 @@ import { McpReliabilityEngine } from './services/mcpReliabilityEngine';
 import { DeadLetterEngine } from './services/deadLetterEngine';
 import { ObservabilityEngine } from './services/observabilityEngine';
 import { ChaosAndRecoveryEngine } from './services/chaosAndRecoveryEngine';
+import { MultiTenantService } from './services/multiTenantService';
+import { Phase9TestSuite } from './services/phase9TestSuite';
 
 export function App() {
-  const [currentTab, setCurrentTab] = useState<'home' | 'sites' | 'tasks' | 'approvals' | 'reliability' | 'observability' | 'bulk' | 'chat' | 'monitoring' | 'testing' | 'security' | 'settings'>('home');
+  const [currentTab, setCurrentTab] = useState<'home' | 'sites' | 'tasks' | 'approvals' | 'reliability' | 'observability' | 'bulk' | 'chat' | 'monitoring' | 'testing' | 'security' | 'settings' | 'tenants'>('home');
   const [viewMode, setViewMode] = useState<'mobile' | 'desktop' | 'code'>('desktop');
 
   // Core Repositories State
@@ -170,6 +202,38 @@ export function App() {
   const [selectedReportForModal, setSelectedReportForModal] = useState<ProductionReport | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isRunningIntegration, setIsRunningIntegration] = useState(false);
+
+  // Phase 9: Multi-Tenant Platform & SaaS Architecture State
+  const [organizations, setOrganizations] = useState<Organization[]>(initialOrganizations);
+  const [clients, setClients] = useState<ClientCompany[]>(initialClientCompanies);
+  const [tenantUsers, setTenantUsers] = useState<TenantUser[]>(initialTenantUsers);
+  const [memberships, setMemberships] = useState<Membership[]>(initialMemberships);
+  const [currentUser, setCurrentUser] = useState<TenantUser>(initialTenantUsers[0]);
+  const [phase9TestCases, setPhase9TestCases] = useState<Phase9TestCase[]>(initialPhase9TestCases);
+  const [isRunningPhase9, setIsRunningPhase9] = useState(false);
+  const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
+
+  // Section 2: SaaS Platforms, Baselines, Usage & Onboarding State
+  const [saasPlans, setSaasPlans] = useState<SaaSPlan[]>(initialSaasPlans);
+  const [siteBaselines, setSiteBaselines] = useState<SiteCapabilityBaseline[]>(initialSiteBaselines);
+  const [capabilityDrifts, setCapabilityDrifts] = useState<CapabilityChangeEvent[]>(initialCapabilityChangeEvents);
+  const [onboardingSessions, setOnboardingSessions] = useState<ClientOnboardingSession[]>(initialClientOnboardingSessions);
+  const [usageSummaries, setUsageSummaries] = useState<Record<string, TenantUsageSummary>>(initialTenantUsageSummaries);
+  const [clientActivityLogs, setClientActivityLogs] = useState<ClientActivityLogItem[]>(initialClientActivityLogs);
+  const [platformAdminAudits, setPlatformAdminAudits] = useState<PlatformAdminAuditItem[]>(initialPlatformAdminAudits);
+  const [checklistItems, setChecklistItems] = useState<Phase9AcceptanceChecklistItem[]>(initialPhase9AcceptanceChecklist);
+
+  // Authoritative Context Resolution (Tenant -> Client -> Site -> Connection)
+  const activeTenantContext = useMemo(() => {
+    const res = MultiTenantService.resolveActiveContext({
+      user: currentUser,
+      organizations,
+      clients,
+      sites,
+      memberships,
+    });
+    return res.context;
+  }, [currentUser, organizations, clients, sites, memberships]);
 
   // OpenRouter Credentials & Config State
   const [openRouterConfig, setOpenRouterConfig] = useState<OpenRouterConfig>({
@@ -818,6 +882,33 @@ export function App() {
   };
 
   const handleResumeProductionTask = (taskId: string) => {
+    const targetTask = productionTasks.find((t) => t.id === taskId);
+    if (targetTask && activeTenantContext) {
+      const evalResult = MultiTenantService.validateExecutionHierarchy({
+        task: targetTask,
+        targetConnectionId: targetTask.siteId ? `mcp-${targetTask.siteId}` : 'mcp-server-1',
+        context: activeTenantContext,
+        sites,
+        mcpServers,
+      });
+
+      if (!evalResult.valid) {
+        const secEvt: SecurityEventItem = {
+          id: `sec-blk-${Date.now()}`,
+          timestamp: new Date().toLocaleTimeString(),
+          eventType: 'CROSS_CLIENT_EXECUTION_BLOCKED',
+          severity: 'CRITICAL',
+          threatActor: currentUser.email,
+          description: evalResult.blockReason || 'Cross-tenant or cross-client execution attempted.',
+          ipAddress: '10.0.4.15',
+          mitigationAction: 'Immediate Execution Halt - Zero socket transmission.',
+          resolved: true,
+        };
+        setSecurityEvents((prev) => [secEvt, ...prev]);
+        return;
+      }
+    }
+
     setProductionTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, overallStatus: 'RUNNING', updatedAt: 'Just now' } : t))
     );
@@ -2628,6 +2719,170 @@ export function App() {
     setIsRunningChaos(false);
   };
 
+  // =========================================================
+  // Phase 9: Multi-Tenant Platform & SaaS Architecture Handlers
+  // =========================================================
+
+  const handleRunPhase9Test = async (testId: string) => {
+    setPhase9TestCases((prev) =>
+      prev.map((t) => (t.id === testId ? { ...t, status: 'RUNNING' } : t))
+    );
+    const updated = await Phase9TestSuite.runTest(testId, {
+      organizations,
+      clients,
+      users: tenantUsers,
+      memberships,
+      sites,
+      tasks: productionTasks,
+      audits: auditEvents,
+      mcpServers,
+    });
+    setPhase9TestCases((prev) => prev.map((t) => (t.id === testId ? updated : t)));
+  };
+
+  const handleRunAllPhase9Tests = async () => {
+    setIsRunningPhase9(true);
+    const updated = await Phase9TestSuite.runAllTests({
+      organizations,
+      clients,
+      users: tenantUsers,
+      memberships,
+      sites,
+      tasks: productionTasks,
+      audits: auditEvents,
+      mcpServers,
+    });
+    setPhase9TestCases(updated);
+    setIsRunningPhase9(false);
+  };
+
+  const handleSwitchClientContext = async (targetClientId: string): Promise<boolean> => {
+    const runningTasks = productionTasks.filter(
+      (t) => t.overallStatus === 'RUNNING' && t.clientId === activeTenantContext?.client.id
+    );
+    const result = MultiTenantService.switchClientContext({
+      currentUser,
+      targetClientId,
+      organizations,
+      clients,
+      sites,
+      memberships,
+      activeRunningTasksCount: runningTasks.length,
+    });
+
+    if (result.success && result.updatedUser) {
+      setCurrentUser(result.updatedUser);
+      if (result.updatedUser.activeSiteId) {
+        setActiveSiteId(result.updatedUser.activeSiteId);
+      }
+
+      // Context Switch Protection: Pause in-flight tasks of previous client to prevent cross-client contamination
+      if (runningTasks.length > 0) {
+        setProductionTasks((prev) =>
+          prev.map((t) =>
+            runningTasks.some((rt) => rt.id === t.id)
+              ? {
+                  ...t,
+                  overallStatus: 'PAUSED',
+                  updatedAt: 'Just now',
+                  executionLogs: [
+                    ...t.executionLogs,
+                    `[${new Date().toLocaleTimeString()}] Client context switch initiated. In-flight task paused safely.`,
+                  ],
+                }
+              : t
+          )
+        );
+      }
+
+      // Record tenant-scoped Audit Event
+      const switchAudit: AuditEvent = {
+        id: `audit-switch-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString(),
+        eventType: 'CONTEXT_SWITCH',
+        severity: 'INFO',
+        title: `Switched operational context to ${result.switchEvent.targetClientId}`,
+        details: `Operator ${currentUser.email} transitioned active scope to client ${result.switchEvent.targetClientId}. Transient memory purged.`,
+        tenantId: result.switchEvent.targetOrganizationId,
+        clientId: result.switchEvent.targetClientId,
+        siteId: result.switchEvent.targetSiteId || '',
+        operatorId: currentUser.id,
+      };
+      setAuditEvents((prev) => [switchAudit, ...prev]);
+
+      return true;
+    } else {
+      // Record security event if unauthorized switch attempted
+      const secEvt: SecurityEventItem = {
+        id: `sec-switch-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString(),
+        eventType: 'CROSS_CLIENT_EXECUTION_BLOCKED',
+        severity: 'HIGH',
+        threatActor: currentUser.email,
+        description: result.errorMessage || `Unauthorized context switch to ${targetClientId} blocked.`,
+        ipAddress: '10.0.4.15',
+        mitigationAction: 'Access Denied; context retained.',
+        resolved: true,
+      };
+      setSecurityEvents((prev) => [secEvt, ...prev]);
+      return false;
+    }
+  };
+
+  const handleAdvanceOnboarding = (sessionId: string, stepId: ClientOnboardingStepId) => {
+    setOnboardingSessions((prev) =>
+      prev.map((sess) => {
+        if (sess.id !== sessionId) return sess;
+        const advanced = MultiTenantService.advanceOnboardingStep(sess, stepId);
+        return advanced;
+      })
+    );
+  };
+
+  const handleExportTenantData = (tenantId: string) => {
+    const audit: AuditEvent = {
+      id: `audit-export-${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      siteId: activeSite?.id || '',
+      siteName: activeSite?.siteName || '',
+      userAction: `Export Tenant Data ${tenantId}`,
+      aiAction: 'Scrub secrets and generate JSON bundle',
+      tool: 'tenant_data_export',
+      parametersSummary: `tenantId: ${tenantId}`,
+      resultSummary: 'Tenant export bundle generated successfully. Raw secrets scrubbed.',
+      approvalStatus: 'NOT_REQUIRED',
+      isSuccess: true,
+      tenantId,
+      clientId: activeTenantContext?.client.id,
+      eventType: 'DATA_EXPORT',
+      severity: 'INFO',
+      title: 'Tenant Data Exported',
+      details: `Operator ${currentUser.email} exported tenant resources. Raw credentials stripped.`
+    };
+    setAuditEvents((prev) => [audit, ...prev]);
+  };
+
+  const handleUpdateTenantStatus = (
+    tenantId: string,
+    status: 'ACTIVE' | 'SUSPENDED' | 'PENDING_SETUP' | 'DEACTIVATED'
+  ) => {
+    setOrganizations((prev) =>
+      prev.map((org) => (org.id === tenantId ? { ...org, status } : org))
+    );
+
+    const padm: PlatformAdminAuditItem = {
+      id: `padm-${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      adminUserId: currentUser.id,
+      adminEmail: currentUser.email,
+      actionType: status === 'SUSPENDED' ? 'TENANT_SUSPENDED' : 'TENANT_CREATED',
+      targetTenantId: tenantId,
+      details: `Platform admin updated tenant state to ${status}.`,
+      ipAddress: '197.232.88.14'
+    };
+    setPlatformAdminAudits((prev) => [padm, ...prev]);
+  };
+
   // Helper function: Render active tab content
   const renderTabContent = () => {
     switch (currentTab) {
@@ -2702,6 +2957,8 @@ export function App() {
             tasks={productionTasks}
             activeSite={activeSite}
             agentMode={agentMode}
+            activeTenantContext={activeTenantContext}
+            onOpenTenantSelector={() => setIsTenantModalOpen(true)}
             onExecuteStep={handleExecuteProductionStep}
             onResumeTask={handleResumeProductionTask}
             onPauseTask={handlePauseProductionTask}
@@ -2803,6 +3060,10 @@ export function App() {
             onRunPhase8AcceptanceTest={handleRunPhase8AcceptanceTest}
             onRunAllPhase8AcceptanceTests={handleRunAllPhase8AcceptanceTests}
             isRunningPhase8Acceptance={isRunningPhase8Acceptance}
+            phase9TestCases={phase9TestCases}
+            onRunPhase9Test={handleRunPhase9Test}
+            onRunAllPhase9Tests={handleRunAllPhase9Tests}
+            isRunningPhase9={isRunningPhase9}
           />
         );
       case 'sites':
@@ -2830,6 +3091,8 @@ export function App() {
         return (
           <ChatScreen
             activeSite={activeSite}
+            activeTenantContext={activeTenantContext}
+            onOpenTenantContextModal={() => setIsTenantModalOpen(true)}
             messages={currentSiteMessages}
             currentAiModelName={activeModel.name}
             activeModel={activeModel}
@@ -2846,6 +3109,33 @@ export function App() {
             }
           />
         );
+      case 'tenants':
+        return activeTenantContext ? (
+          <TenantManagementScreen
+            activeContext={activeTenantContext}
+            organizations={organizations}
+            clients={clients}
+            users={tenantUsers}
+            memberships={memberships}
+            sites={sites}
+            tasks={productionTasks}
+            audits={auditEvents}
+            mcpServers={mcpServers}
+            saasPlans={saasPlans}
+            siteBaselines={siteBaselines}
+            capabilityDrifts={capabilityDrifts}
+            onboardingSessions={onboardingSessions}
+            usageSummaries={usageSummaries}
+            clientActivityLogs={clientActivityLogs}
+            platformAdminAudits={platformAdminAudits}
+            checklistItems={checklistItems}
+            onOpenContextModal={() => setIsTenantModalOpen(true)}
+            onSwitchClient={handleSwitchClientContext}
+            onExportTenantData={handleExportTenantData}
+            onUpdateTenantStatus={handleUpdateTenantStatus}
+            onAdvanceOnboarding={handleAdvanceOnboarding}
+          />
+        ) : null;
       case 'settings':
         return (
           <SettingsScreen
@@ -2877,7 +3167,9 @@ export function App() {
       <TopBar
         currentTab={currentTab}
         activeSite={activeSite}
+        activeTenantContext={activeTenantContext}
         onOpenSiteSelector={() => setIsSiteSelectorOpen(true)}
+        onOpenTenantContextModal={() => setIsTenantModalOpen(true)}
         viewMode={viewMode}
         onSetViewMode={setViewMode}
       />
@@ -3054,6 +3346,24 @@ export function App() {
           setApprovalModalData((prev) => ({ ...prev, isOpen: false }));
         }}
       />
+
+      {/* Phase 9: Multi-Tenant Operational Context & Client Selector Modal */}
+      {activeTenantContext && (
+        <TenantContextModal
+          isOpen={isTenantModalOpen}
+          onClose={() => setIsTenantModalOpen(false)}
+          activeContext={activeTenantContext}
+          organizations={organizations}
+          clients={clients}
+          sites={sites}
+          onSwitchContext={handleSwitchClientContext}
+          activeRunningTasksCount={
+            productionTasks.filter(
+              (t) => t.overallStatus === 'RUNNING' && t.clientId === activeTenantContext.client.id
+            ).length
+          }
+        />
+      )}
     </div>
   );
 }

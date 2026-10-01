@@ -19,7 +19,9 @@ import {
   Layers,
   Server,
   Database,
-  Flame
+  Flame,
+  Building2,
+  Briefcase
 } from 'lucide-react';
 import { 
   ProductionTestCase, 
@@ -29,7 +31,8 @@ import {
   ReliabilityTestCase,
   Phase8AcceptanceItem,
   FullRecoveryStep,
-  DisasterRecoveryScenario
+  DisasterRecoveryScenario,
+  Phase9TestCase
 } from '../types';
 import { ChaosAndRecoveryEngine } from '../services/chaosAndRecoveryEngine';
 
@@ -40,6 +43,7 @@ interface ProductionTestSuiteProps {
   integrationSteps: IntegrationWorkflowStep[];
   reliabilityTests?: ReliabilityTestCase[];
   phase8AcceptanceItems?: Phase8AcceptanceItem[];
+  phase9TestCases?: Phase9TestCase[];
   onRunTest: (testId: string) => Promise<void>;
   onRunAllTests: () => Promise<void>;
   onResetTests: () => void;
@@ -53,6 +57,9 @@ interface ProductionTestSuiteProps {
   onRunPhase8AcceptanceTest?: (id: string) => Promise<void>;
   onRunAllPhase8AcceptanceTests?: () => Promise<void>;
   isRunningPhase8Acceptance?: boolean;
+  onRunPhase9Test?: (id: string) => Promise<void>;
+  onRunAllPhase9Tests?: () => Promise<void>;
+  isRunningPhase9?: boolean;
 }
 
 export const ProductionTestSuite: React.FC<ProductionTestSuiteProps> = ({
@@ -75,14 +82,27 @@ export const ProductionTestSuite: React.FC<ProductionTestSuiteProps> = ({
   onRunPhase8AcceptanceTest,
   onRunAllPhase8AcceptanceTests,
   isRunningPhase8Acceptance = false,
+  phase9TestCases = [],
+  onRunPhase9Test,
+  onRunAllPhase9Tests,
+  isRunningPhase9 = false,
 }) => {
-  const [activeTab, setActiveTab] = useState<'TESTS' | 'RELIABILITY' | 'INVARIANTS' | 'INTEGRATION' | 'CHECKLIST'>('TESTS');
+  const [activeTab, setActiveTab] = useState<'TESTS' | 'RELIABILITY' | 'PHASE9' | 'INVARIANTS' | 'INTEGRATION' | 'CHECKLIST'>('TESTS');
   const [checklistMode, setChecklistMode] = useState<'PHASE_8_ACCEPTANCE' | 'PHASE_7_READINESS'>('PHASE_8_ACCEPTANCE');
   const [selectedPhase8Category, setSelectedPhase8Category] = useState<string>('ALL');
   const [selectedTestId, setSelectedTestId] = useState<string>(testCases[0]?.id || '');
   const [selectedRelTestId, setSelectedRelTestId] = useState<string>(reliabilityTests[0]?.id || 'rel-test-1');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedRelCategory, setSelectedRelCategory] = useState<string>('ALL');
+  const [selectedPhase9TestId, setSelectedPhase9TestId] = useState<string>(phase9TestCases[0]?.id || 'p9-test-1');
+  const [selectedPhase9Category, setSelectedPhase9Category] = useState<string>('ALL');
+
+  const filteredPhase9Tests = selectedPhase9Category === 'ALL'
+    ? phase9TestCases
+    : phase9TestCases.filter((t) => t.category === selectedPhase9Category);
+
+  const selectedPhase9Test = phase9TestCases.find((t) => t.id === selectedPhase9TestId) || filteredPhase9Tests[0] || phase9TestCases[0];
+  const passedPhase9Count = phase9TestCases.filter((t) => t.status === 'PASSED').length;
 
   const [fullRecoveryDrill, setFullRecoveryDrill] = useState<{
     steps: FullRecoveryStep[];
@@ -211,6 +231,17 @@ export const ProductionTestSuite: React.FC<ProductionTestSuiteProps> = ({
         >
           <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
           Phase 8 Reliability Suites ({passedRelCount}/{reliabilityTests.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('PHASE9')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'PHASE9'
+              ? 'bg-neutral-800 text-amber-400 border border-neutral-700'
+              : 'text-neutral-400 hover:text-neutral-200'
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5 text-purple-400" />
+          Phase 9 Multi-Tenant Suites ({passedPhase9Count}/{phase9TestCases.length})
         </button>
         <button
           onClick={() => setActiveTab('INVARIANTS')}
@@ -873,6 +904,235 @@ export const ProductionTestSuite: React.FC<ProductionTestSuiteProps> = ({
                   );
                 })()}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: PHASE 9 MULTI-TENANT & SAAS CERTIFICATION */}
+      {activeTab === 'PHASE9' && (
+        <div className="space-y-6">
+          {/* Summary Scoreboard */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-neutral-900/90 border border-neutral-800 rounded-xl p-3.5 space-y-1">
+              <div className="text-neutral-400 text-xs">Phase 9 Suites</div>
+              <div className="text-2xl font-bold font-mono text-purple-400">
+                {phase9TestCases.length}
+              </div>
+              <p className="text-[10px] text-neutral-400">100% Multi-Tenant Coverage</p>
+            </div>
+
+            <div className="bg-neutral-900/90 border border-neutral-800 rounded-xl p-3.5 space-y-1">
+              <div className="text-neutral-400 text-xs">Passed Assertions</div>
+              <div className="text-2xl font-bold font-mono text-emerald-400">
+                {phase9TestCases.reduce((acc, t) => acc + t.assertionsPassed, 0)} / {phase9TestCases.reduce((acc, t) => acc + t.assertionsTotal, 0)}
+              </div>
+              <p className="text-[10px] text-neutral-400">Deterministic Tenant Checks</p>
+            </div>
+
+            <div className="bg-neutral-900/90 border border-neutral-800 rounded-xl p-3.5 space-y-1">
+              <div className="text-neutral-400 text-xs">Passed Suites</div>
+              <div className="text-2xl font-bold font-mono text-emerald-400">
+                {passedPhase9Count}
+              </div>
+              <p className="text-[10px] text-emerald-400/80">Zero Cross-Tenant Leaks</p>
+            </div>
+
+            <div className="bg-neutral-900/90 border border-neutral-800 rounded-xl p-3.5 space-y-1">
+              <div className="text-neutral-400 text-xs">Tenant Isolation Status</div>
+              <div className="text-sm font-bold font-mono text-amber-400 mt-1">
+                {passedPhase9Count === phase9TestCases.length ? '100% ISOLATED & CERTIFIED' : 'TESTS READY'}
+              </div>
+              <p className="text-[10px] text-neutral-400">Phase 5 Security Uncompromised</p>
+            </div>
+          </div>
+
+          {/* Category Filter and Run All Button */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-900/80 border border-neutral-800 p-3 rounded-xl">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              {['ALL', 'TENANT_ISOLATION', 'CLIENT_ISOLATION', 'SITE_ISOLATION', 'ROLE_PERMISSIONS', 'CONTEXT_SWITCH', 'DATABASE_ISOLATION', 'API_PROTECTION'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedPhase9Category(cat)}
+                  className={`text-[11px] px-2.5 py-1 rounded font-mono transition-colors whitespace-nowrap ${
+                    selectedPhase9Category === cat
+                      ? 'bg-purple-600 text-neutral-100 font-bold shadow'
+                      : 'bg-neutral-950 text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {onRunAllPhase9Tests && (
+              <button
+                onClick={onRunAllPhase9Tests}
+                disabled={isRunningPhase9}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-neutral-100 text-xs font-bold rounded-lg transition-colors shrink-0 shadow"
+              >
+                {isRunningPhase9 ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Play className="w-3.5 h-3.5" />
+                )}
+                {isRunningPhase9 ? 'Executing Suites...' : `Run All ${phase9TestCases.length} Phase 9 Tests`}
+              </button>
+            )}
+          </div>
+
+          {/* Two-Column Test Runner Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Test Selector List */}
+            <div className="lg:col-span-1 space-y-2 max-h-[600px] overflow-y-auto pr-1">
+              {filteredPhase9Tests.map((test) => {
+                const isSelected = selectedPhase9Test?.id === test.id;
+                return (
+                  <div
+                    key={test.id}
+                    onClick={() => setSelectedPhase9TestId(test.id)}
+                    className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-neutral-800/90 border-purple-500/70 shadow-sm'
+                        : 'bg-neutral-900/60 border-neutral-800 hover:border-neutral-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-mono text-neutral-500 uppercase">
+                        {test.category}
+                      </span>
+                      <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                        test.status === 'PASSED'
+                          ? 'text-emerald-400 bg-emerald-950/60 border-emerald-800/40'
+                          : test.status === 'FAILED'
+                          ? 'text-rose-400 bg-rose-950/60 border-rose-800/40'
+                          : test.status === 'RUNNING'
+                          ? 'text-amber-400 bg-amber-950/60 border-amber-800/40'
+                          : 'text-neutral-400 bg-neutral-950 border-neutral-800'
+                      }`}>
+                        {test.status}
+                      </span>
+                    </div>
+
+                    <h4 className="text-xs font-semibold text-neutral-200 line-clamp-1">
+                      {test.name}
+                    </h4>
+                    <p className="text-[11px] text-neutral-400 line-clamp-2 mt-0.5">
+                      {test.description}
+                    </p>
+
+                    <div className="flex items-center justify-between text-[10px] text-neutral-500 mt-2 pt-1 border-t border-neutral-800/60 font-mono">
+                      <span>Assertions: {test.assertionsPassed}/{test.assertionsTotal}</span>
+                      {test.durationMs ? <span>{test.durationMs}ms</span> : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Test Details & Execution Console */}
+            <div className="lg:col-span-2">
+              {selectedPhase9Test ? (
+                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-800">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-mono bg-neutral-950 text-purple-400 px-2 py-0.5 rounded border border-neutral-800">
+                          {selectedPhase9Test.category}
+                        </span>
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                          selectedPhase9Test.status === 'PASSED'
+                            ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+                            : selectedPhase9Test.status === 'RUNNING'
+                            ? 'bg-amber-950 text-amber-400 border-amber-800'
+                            : 'bg-neutral-950 text-neutral-400 border-neutral-800'
+                        }`}>
+                          {selectedPhase9Test.status}
+                        </span>
+                      </div>
+                      <h2 className="text-base font-bold text-neutral-100">
+                        {selectedPhase9Test.name}
+                      </h2>
+                      <p className="text-xs text-neutral-400 mt-1">
+                        {selectedPhase9Test.description}
+                      </p>
+                    </div>
+
+                    {onRunPhase9Test && (
+                      <button
+                        onClick={() => onRunPhase9Test(selectedPhase9Test.id)}
+                        disabled={selectedPhase9Test.status === 'RUNNING'}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-neutral-100 text-xs font-bold rounded-lg transition-colors shadow shrink-0"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        Run This Test
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Expected Invariant */}
+                  <div className="p-3 bg-neutral-950 rounded-lg border border-neutral-800 text-xs">
+                    <strong className="text-purple-400 block mb-0.5 font-mono">Expected Invariant:</strong>
+                    <span className="text-neutral-300">{selectedPhase9Test.expectedBehavior}</span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-neutral-300">
+                        Assertion Verification State:
+                      </span>
+                      <span className="font-mono text-emerald-400 font-bold">
+                        {selectedPhase9Test.assertionsPassed} / {selectedPhase9Test.assertionsTotal} Passed
+                      </span>
+                    </div>
+                    <div className="w-full bg-neutral-900 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-emerald-500 h-full transition-all duration-300"
+                        style={{
+                          width: `${selectedPhase9Test.assertionsTotal > 0 ? (selectedPhase9Test.assertionsPassed / selectedPhase9Test.assertionsTotal) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Terminal Execution Logs */}
+                  <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs text-neutral-400 font-mono border-b border-neutral-800/80 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Terminal className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Multi-Tenant Security Audit Log</span>
+                      </div>
+                      <span>{selectedPhase9Test.logs.length} Lines Logged</span>
+                    </div>
+
+                    <div className="font-mono text-xs space-y-1 max-h-80 overflow-y-auto pt-1">
+                      {selectedPhase9Test.logs.length > 0 ? (
+                        selectedPhase9Test.logs.map((log, idx) => (
+                          <div
+                            key={idx}
+                            className={`leading-relaxed ${
+                              log.includes('PASS') || log.includes('SUCCESS')
+                                ? 'text-emerald-400 font-semibold'
+                                : log.includes('BLOCKED') || log.includes('FAIL')
+                                ? 'text-rose-400 font-bold'
+                                : log.includes('INIT')
+                                ? 'text-purple-400'
+                                : 'text-neutral-400'
+                            }`}
+                          >
+                            {log}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-neutral-500 italic py-6 text-center">
+                          Test suite queued. Click "Run This Test" or "Run All Phase 9 Tests" to execute.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

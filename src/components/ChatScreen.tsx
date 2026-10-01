@@ -13,12 +13,17 @@ import {
   Sparkles,
   Zap,
   Info,
-  X
+  X,
+  Building2,
+  Briefcase,
+  Globe
 } from 'lucide-react';
-import { ChatMessage, Site, DangerousActionType, AIModel, AIUsage } from '../types';
+import { ChatMessage, Site, DangerousActionType, AIModel, AIUsage, ActiveTenantContext } from '../types';
 
 interface ChatScreenProps {
   activeSite: Site | null;
+  activeTenantContext?: ActiveTenantContext | null;
+  onOpenTenantContextModal?: () => void;
   messages: ChatMessage[];
   currentAiModelName: string;
   activeModel?: AIModel;
@@ -35,6 +40,8 @@ interface ChatScreenProps {
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({
   activeSite,
+  activeTenantContext,
+  onOpenTenantContextModal,
   messages,
   currentAiModelName,
   activeModel,
@@ -64,6 +71,42 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full max-w-5xl mx-auto bg-neutral-950">
+      {/* TENANT & CLIENT OPERATIONAL HIERARCHY BAR */}
+      {activeTenantContext && (
+        <div className="bg-neutral-950 border-b border-neutral-850 px-4 py-2 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-mono uppercase text-neutral-400 font-semibold">Hierarchy:</span>
+            <span className="flex items-center gap-1 font-mono text-amber-400 font-bold">
+              <Building2 className="w-3.5 h-3.5" />
+              {activeTenantContext.organization.name}
+            </span>
+            <span className="text-neutral-600 font-mono">↓</span>
+            <span className="flex items-center gap-1 font-mono text-amber-300 font-semibold">
+              <Briefcase className="w-3.5 h-3.5" />
+              {activeTenantContext.client.name}
+            </span>
+            <span className="text-neutral-600 font-mono">↓</span>
+            <span className="flex items-center gap-1 font-mono text-emerald-400 font-medium">
+              <Globe className="w-3.5 h-3.5" />
+              {activeSite ? activeSite.siteName : 'None'}
+            </span>
+            <span className="text-neutral-600 font-mono">↓</span>
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-800">
+              {activeTenantContext.connectionStatus}
+            </span>
+          </div>
+
+          {onOpenTenantContextModal && (
+            <button
+              onClick={onOpenTenantContextModal}
+              className="text-[11px] font-mono text-amber-400 hover:text-amber-300 underline underline-offset-2 shrink-0"
+            >
+              Switch Client Scope
+            </button>
+          )}
+        </div>
+      )}
+
       {/* MANDATORY ACTIVE SITE BANNER & MODEL SELECTOR */}
       <div className="bg-neutral-900 border-b border-neutral-800 px-4 py-3 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">

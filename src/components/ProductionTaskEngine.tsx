@@ -33,13 +33,16 @@ import {
   OperationDomain, 
   Site, 
   ToolRiskLevel,
-  AgentExecutionMode
+  AgentExecutionMode,
+  ActiveTenantContext
 } from '../types';
 
 interface ProductionTaskEngineProps {
   tasks: ProductionTask[];
   activeSite: Site | null;
   agentMode: AgentExecutionMode;
+  activeTenantContext?: ActiveTenantContext | null;
+  onOpenTenantSelector?: () => void;
   onExecuteStep: (taskId: string, stepId: string) => void;
   onResumeTask: (taskId: string) => void;
   onPauseTask: (taskId: string) => void;
@@ -100,6 +103,8 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
   tasks,
   activeSite,
   agentMode,
+  activeTenantContext,
+  onOpenTenantSelector,
   onExecuteStep,
   onResumeTask,
   onPauseTask,
@@ -117,9 +122,14 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
   const [selectedDomain, setSelectedDomain] = useState<OperationDomain>('SEO');
   const [filterDomain, setFilterDomain] = useState<string>('ALL');
 
-  const siteTasks = activeSite 
-    ? tasks.filter((t) => t.siteId === activeSite.id) 
+  // Enforce tenant/client filtering when activeTenantContext is present
+  const scopedTasks = activeTenantContext
+    ? tasks.filter((t) => t.clientId === activeTenantContext.client.id)
+    : activeSite
+    ? tasks.filter((t) => t.siteId === activeSite.id)
     : tasks;
+
+  const siteTasks = scopedTasks;
 
   const filteredTasks = filterDomain === 'ALL'
     ? siteTasks
@@ -130,12 +140,17 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
   const handleCreateFromPrompt = (promptText: string, domain: OperationDomain, risk: ToolRiskLevel) => {
     if (!activeSite) return;
 
+    const targetTenantId = activeTenantContext?.organization.id || 'org-imperial-kenya';
+    const targetClientId = activeTenantContext?.client.id || `client-${activeSite.id}`;
+    const targetConnId = activeTenantContext?.client.mcpConnectionIds?.[0] || `conn-mcp-${activeSite.id}`;
+
     const newTask: ProductionTask = {
       id: `ptask-${Date.now().toString().slice(-4)}`,
-      clientId: `client-${activeSite.id}`,
+      tenantId: targetTenantId,
+      clientId: targetClientId,
       siteId: activeSite.id,
       siteName: activeSite.siteName,
-      connectionId: `conn-mcp-${activeSite.id}`,
+      connectionId: targetConnId,
       title: promptText.slice(0, 55) + '...',
       naturalLanguagePrompt: promptText,
       domain,
@@ -234,6 +249,17 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
             <span className="text-[11px] font-mono uppercase bg-neutral-900 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
               Pillars 1 & 2 · Production Execution
             </span>
+            {activeTenantContext && (
+              <button
+                onClick={onOpenTenantSelector}
+                title="Active Tenant & Client Scope"
+                className="flex items-center gap-1.5 px-2.5 py-0.5 bg-neutral-900 hover:bg-neutral-800 border border-amber-500/40 rounded text-[11px] font-mono text-amber-300 transition-colors"
+              >
+                <span>{activeTenantContext.organization.name}</span>
+                <span className="text-neutral-500">↓</span>
+                <span className="font-bold text-amber-400">{activeTenantContext.client.name}</span>
+              </button>
+            )}
           </div>
           <p className="text-xs text-neutral-400 mt-1">
             Controlled execution engine: Turn natural language instructions into structured multi-step tasks across all WordPress operational domains.
