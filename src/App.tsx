@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { 
   initialDemoSites, 
   initialDemoTasks, 
@@ -136,6 +136,8 @@ import { Phase14GovernanceScreen } from './components/Phase14GovernanceScreen';
 import { Phase15WhiteLabelScreen } from './components/Phase15WhiteLabelScreen';
 import { Phase16GlobalScaleScreen } from './components/Phase16GlobalScaleScreen';
 import { MasterPhases10To16SuiteModal } from './components/MasterPhases10To16SuiteModal';
+import { DataSyncStatusModal } from './components/DataSyncStatusModal';
+import { syncManager } from './services/dataSyncService';
 import { persistenceManager } from './services/reliabilityPersistence';
 import { ReconciliationEngine } from './services/reconciliationEngine';
 import { ResourceLockManager } from './services/resourceLockManager';
@@ -171,6 +173,7 @@ export function App() {
   >('home');
   const [viewMode, setViewMode] = useState<'mobile' | 'desktop' | 'code'>('desktop');
   const [isMasterCertificationOpen, setIsMasterCertificationOpen] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
   // Core Repositories State
   const [sites, setSites] = useState<Site[]>(initialDemoSites);
@@ -195,6 +198,13 @@ export function App() {
   const [isAgentControlsOpen, setIsAgentControlsOpen] = useState(false);
   const [isRunningAllTests, setIsRunningAllTests] = useState(false);
   const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<ProductionTask | null>(null);
+
+  // Production Task Local Cache & Data Sync Strategy
+  useEffect(() => {
+    productionTasks.forEach(task => {
+      syncManager.cacheTaskLocally(task);
+    });
+  }, [productionTasks]);
 
   // Phase 8: Production Reliability, Recovery & Self-Healing State
   const [reconciledTasks, setReconciledTasks] = useState<ReconciledTaskRecord[]>(initialReconciledTasks);
@@ -942,12 +952,22 @@ export function App() {
     setProductionTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, overallStatus: 'RUNNING', updatedAt: 'Just now' } : t))
     );
+    syncManager.queueOperation({
+      taskId,
+      operationType: 'UPDATE_TASK_STATUS',
+      payload: { status: 'RUNNING' }
+    });
   };
 
   const handlePauseProductionTask = (taskId: string) => {
     setProductionTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, overallStatus: 'PAUSED', updatedAt: 'Just now' } : t))
     );
+    syncManager.queueOperation({
+      taskId,
+      operationType: 'UPDATE_TASK_STATUS',
+      payload: { status: 'PAUSED' }
+    });
   };
 
   const handleRollbackProductionTask = (taskId: string) => {
@@ -962,6 +982,11 @@ export function App() {
         };
       })
     );
+    syncManager.queueOperation({
+      taskId,
+      operationType: 'UPDATE_TASK_STATUS',
+      payload: { status: 'ROLLED_BACK' }
+    });
     const audit: AuditEvent = {
       id: `audit-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString(),
@@ -2993,7 +3018,14 @@ export function App() {
             onResumeTask={handleResumeProductionTask}
             onPauseTask={handlePauseProductionTask}
             onRollbackTask={handleRollbackProductionTask}
-            onCreateTask={(task) => setProductionTasks((prev) => [task, ...prev])}
+            onCreateTask={(task) => {
+              setProductionTasks((prev) => [task, ...prev]);
+              syncManager.queueOperation({
+                taskId: task.id,
+                operationType: 'CREATE_TASK',
+                payload: task
+              });
+            }}
             onOpenApproval={() => setCurrentTab('approvals')}
             onOpenTaskDetail={(task) => setSelectedTaskForDetail(task)}
             onRetryFailed={handleRetryFailedTask}
@@ -3262,6 +3294,7 @@ export function App() {
         onOpenSiteSelector={() => setIsSiteSelectorOpen(true)}
         onOpenTenantContextModal={() => setIsTenantModalOpen(true)}
         onOpenMasterCertification={() => setIsMasterCertificationOpen(true)}
+        onOpenSyncModal={() => setIsSyncModalOpen(true)}
         viewMode={viewMode}
         onSetViewMode={setViewMode}
       />
@@ -3460,6 +3493,19 @@ export function App() {
       {/* Phases 10-16 Master Acceptance Certification Modal */}
       {isMasterCertificationOpen && (
         <MasterPhases10To16SuiteModal onClose={() => setIsMasterCertificationOpen(false)} />
+      )}
+
+      {/* Production Task Data Synchronization & Offline Reconciler Modal */}
+      {isSyncModalOpen && (
+        <DataSyncStatusModal
+          onClose={() => setIsSyncModalOpen(false)}
+          onRefreshTasks={() => {
+            const cached = syncManager.getCachedTasks();
+            if (cached.length > 0) {
+              setProductionTasks(cached);
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Shield, ChevronDown, Smartphone, Monitor, Code, Building2, Briefcase, Globe, UserCheck, Sliders } from 'lucide-react';
 import { Site, ActiveTenantContext } from '../types';
+import { SyncStatusBadge } from './SyncStatusBadge';
 
 interface TopBarProps {
   currentTab: string;
@@ -9,6 +10,7 @@ interface TopBarProps {
   onOpenSiteSelector: () => void;
   onOpenTenantContextModal?: () => void;
   onOpenMasterCertification?: () => void;
+  onOpenSyncModal?: () => void;
   viewMode: 'mobile' | 'desktop' | 'code';
   onSetViewMode: (mode: 'mobile' | 'desktop' | 'code') => void;
 }
@@ -20,6 +22,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenSiteSelector,
   onOpenTenantContextModal,
   onOpenMasterCertification,
+  onOpenSyncModal,
   viewMode,
   onSetViewMode,
 }) => {
@@ -107,6 +110,9 @@ export const TopBar: React.FC<TopBarProps> = ({
               </span>
             </div>
           )}
+
+          {/* Data Synchronization & Offline Reconciler Badge */}
+          {onOpenSyncModal && <SyncStatusBadge onClick={onOpenSyncModal} />}
 
           {/* Master Acceptance Suite Button */}
           {onOpenMasterCertification && (

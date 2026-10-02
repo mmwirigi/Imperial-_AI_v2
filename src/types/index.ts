@@ -2415,5 +2415,74 @@ export interface Phase10To16AcceptanceItem {
   evidence: string;
 }
 
+// ============================================================================
+// DATA SYNCHRONIZATION & OFFLINE RECONCILIATION STRATEGY
+// ============================================================================
+
+export type SyncStatus =
+  | 'SYNCED'
+  | 'PENDING_SYNC'
+  | 'SYNCING'
+  | 'OFFLINE'
+  | 'CONFLICT_RESOLVED'
+  | 'SYNC_FAILED';
+
+export interface SyncOutboxOperation {
+  id: string;
+  taskId: string;
+  tenantId: string;
+  clientId: string;
+  operationType:
+    | 'UPDATE_TASK_STATUS'
+    | 'RECORD_JOURNAL_LOG'
+    | 'UPDATE_STEP_STATE'
+    | 'APPROVE_TASK'
+    | 'CREATE_TASK'
+    | 'RECORD_AUDIT_EVENT';
+  payload: any;
+  idempotencyKey: string;
+  createdAt: string;
+  attempts: number;
+  lastAttemptAt?: string;
+  status: 'QUEUED' | 'IN_FLIGHT' | 'PROCESSED' | 'FAILED';
+  error?: string;
+}
+
+export interface LocalTaskCacheEntry {
+  taskId: string;
+  tenantId: string;
+  clientId: string;
+  task: ProductionTask;
+  localVersion: number;
+  serverVersion: number;
+  isDirty: boolean;
+  lastLocalUpdate: string;
+  lastServerSync?: string;
+  cachedLogsCount: number;
+}
+
+export interface SyncReconciliationReport {
+  id: string;
+  reconciledAt: string;
+  totalItemsProcessed: number;
+  successfulCount: number;
+  conflictsResolvedCount: number;
+  failedCount: number;
+  details: string[];
+  status: 'COMPLETED' | 'PARTIAL' | 'FAILED';
+}
+
+export interface SyncEngineMetrics {
+  isOnline: boolean;
+  isSimulatedOffline: boolean;
+  syncStatus: SyncStatus;
+  pendingOutboxCount: number;
+  cachedTasksCount: number;
+  lastSyncTimestamp?: string;
+  lastPingLatencyMs: number;
+  storageUsageBytes: number;
+}
+
+
 
 
