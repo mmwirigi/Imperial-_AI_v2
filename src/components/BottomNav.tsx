@@ -11,7 +11,14 @@ import {
   Database,
   ShieldAlert,
   RotateCcw,
-  Building2
+  Building2,
+  Plug,
+  Bot,
+  Brain,
+  TrendingUp,
+  Scale,
+  Palette,
+  Globe2
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -37,6 +44,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     { id: 'home', label: 'Operations', icon: LayoutDashboard },
     { id: 'tasks', label: 'Task Engine', icon: CheckSquare, badge: activeTasksBadgeCount },
     { id: 'approvals', label: 'Approvals', icon: ShieldCheck, badge: pendingApprovalsBadgeCount },
+    { id: 'integrations', label: 'API & Integrations', icon: Plug },
+    { id: 'agents', label: 'Specialist Agents', icon: Bot },
+    { id: 'knowledge', label: 'Knowledge Graph', icon: Brain },
+    { id: 'predictive', label: 'Predictive AI', icon: TrendingUp },
+    { id: 'governance', label: 'Governance & GRC', icon: Scale },
+    { id: 'whitelabel', label: 'White-Label', icon: Palette },
+    { id: 'globalscale', label: 'Global Scale', icon: Globe2 },
     { id: 'reliability', label: 'Reliability', icon: RotateCcw, badge: reliabilityBadgeCount },
     { id: 'observability', label: 'Observability', icon: Activity, badge: observabilityBadgeCount },
     { id: 'bulk', label: 'Bulk Ops', icon: Database },

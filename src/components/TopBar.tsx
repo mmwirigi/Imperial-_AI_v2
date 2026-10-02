@@ -8,6 +8,7 @@ interface TopBarProps {
   activeTenantContext?: ActiveTenantContext | null;
   onOpenSiteSelector: () => void;
   onOpenTenantContextModal?: () => void;
+  onOpenMasterCertification?: () => void;
   viewMode: 'mobile' | 'desktop' | 'code';
   onSetViewMode: (mode: 'mobile' | 'desktop' | 'code') => void;
 }
@@ -18,6 +19,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   activeTenantContext,
   onOpenSiteSelector,
   onOpenTenantContextModal,
+  onOpenMasterCertification,
   viewMode,
   onSetViewMode,
 }) => {
@@ -35,11 +37,11 @@ export const TopBar: React.FC<TopBarProps> = ({
                 IMPERIAL AI
               </span>
               <span className="text-[10px] font-mono uppercase bg-neutral-900 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold">
-                Phase 9 Multi-Tenant
+                Phases 10–16 Active
               </span>
             </div>
             <p className="text-[10px] text-neutral-400 hidden sm:block">
-              Multi-Tenant SaaS Platform &amp; Autonomous WordPress Operations
+              Enterprise WordPress AI Command Center • Global Multi-Tenant Ecosystem
             </p>
           </div>
         </div>
@@ -104,6 +106,18 @@ export const TopBar: React.FC<TopBarProps> = ({
                 {activeTenantContext.membership.role}
               </span>
             </div>
+          )}
+
+          {/* Master Acceptance Suite Button */}
+          {onOpenMasterCertification && (
+            <button
+              onClick={onOpenMasterCertification}
+              title="Open Phases 10-16 Acceptance Certification Suite"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-lg text-xs font-bold transition-all shadow-sm"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Phases 10–16 Tests</span>
+            </button>
           )}
 
           <div className="flex items-center bg-neutral-900 border border-neutral-800 rounded-lg p-0.5">

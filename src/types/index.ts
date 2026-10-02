@@ -1756,4 +1756,664 @@ export interface Phase9AcceptanceChecklistItem {
   notes: string;
 }
 
+// ============================================================================
+// PHASE 10: ENTERPRISE API, INTEGRATIONS & AUTOMATION ECOSYSTEM
+// ============================================================================
+
+export interface EnterpriseApiKey {
+  id: string;
+  tenantId: string;
+  name: string;
+  keyPrefix: string; // e.g. imp_live_7a8b
+  keyHash: string; // SHA-256 hash of raw secret
+  scopes: string[]; // e.g. ['sites:read', 'tasks:create', 'workflows:trigger']
+  createdAt: string;
+  expiresAt: string;
+  lastUsedAt?: string;
+  status: 'ACTIVE' | 'REVOKED' | 'EXPIRED';
+  createdBy: string;
+}
+
+export type IntegrationProvider =
+  | 'GOOGLE_SEARCH_CONSOLE'
+  | 'GOOGLE_ANALYTICS_4'
+  | 'GOOGLE_BUSINESS_PROFILE'
+  | 'EMAIL_TRANSACTIONAL'
+  | 'CLOUD_STORAGE'
+  | 'SLACK_NOTIFICATIONS'
+  | 'CUSTOM_WEBHOOK';
+
+export interface IntegrationSyncEvent {
+  id: string;
+  timestamp: string;
+  status: 'SUCCESS' | 'FAILED' | 'PARTIAL';
+  recordsProcessed: number;
+  details: string;
+  error?: string;
+}
+
+export interface IntegrationInstance {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  siteId?: string;
+  provider: IntegrationProvider;
+  name: string;
+  status: 'CONNECTED' | 'DISCONNECTED' | 'DEGRADED' | 'CONFIG_REQUIRED';
+  scopes: string[];
+  credentialRef: string; // opaque pointer into encrypted secret store
+  healthStatus: 'HEALTHY' | 'WARNING' | 'ERROR';
+  lastCheckedAt: string;
+  lastSuccessfulSync?: string;
+  config: Record<string, any>;
+  syncHistory: IntegrationSyncEvent[];
+}
+
+export interface InboundWebhookSubscription {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  provider: string;
+  secretHash: string;
+  endpointUrl: string;
+  status: 'ACTIVE' | 'PAUSED';
+  retryCount: number;
+  replayProtectionNonceCache: string[];
+  lastReceivedAt?: string;
+}
+
+export interface WebhookEventDelivery {
+  id: string;
+  tenantId: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+  provider: string;
+  eventType: string;
+  payloadSummary: string;
+  signatureVerified: boolean;
+  idempotencyKey: string;
+  status: 'DELIVERED' | 'FAILED' | 'DEAD_LETTER';
+  attemptCount: number;
+  error?: string;
+  timestamp: string;
+}
+
+export type WorkflowTriggerType = 'SCHEDULED' | 'WEBHOOK' | 'MANUAL' | 'ANOMALY_DETECTED';
+
+export interface WorkflowCondition {
+  field: string;
+  operator: 'EQUALS' | 'CONTAINS' | 'GREATER_THAN' | 'LESS_THAN';
+  value: any;
+}
+
+export interface WorkflowActionStep {
+  id: string;
+  stepNumber: number;
+  actionType:
+    | 'AUDIT_SITE'
+    | 'GSC_INSPECT'
+    | 'ANALYTICS_REPORT'
+    | 'STAGE_OPTIMIZATION'
+    | 'SEND_NOTIFICATION'
+    | 'TRIGGER_BACKUP'
+    | 'EXECUTE_CONTROLLED_TASK';
+  title: string;
+  targetEntityId?: string;
+  params: Record<string, any>;
+  requiresPhase5Approval: boolean;
+}
+
+export interface WorkflowModel {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  siteId?: string;
+  name: string;
+  description: string;
+  version: number;
+  status: 'ACTIVE' | 'DRAFT' | 'PAUSED';
+  triggerType: WorkflowTriggerType;
+  triggerConfig: {
+    cron?: string;
+    event?: string;
+    threshold?: number;
+  };
+  conditions: WorkflowCondition[];
+  actions: WorkflowActionStep[];
+  retryPolicy: {
+    maxRetries: number;
+    backoffSeconds: number;
+  };
+  requiresApproval: boolean;
+  createdBy: string;
+  createdAt: string;
+  lastRunAt?: string;
+  lastRunStatus?: 'SUCCESS' | 'FAILED' | 'PENDING_APPROVAL';
+}
+
+export interface WorkflowRunRecord {
+  id: string;
+  workflowId: string;
+  tenantId: string;
+  clientId: string;
+  siteId?: string;
+  status: 'PENDING_APPROVAL' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'ROLLED_BACK';
+  startedAt: string;
+  completedAt?: string;
+  currentStep: number;
+  totalSteps: number;
+  logs: string[];
+  phase7ExecutionTaskId?: string;
+  outcomeSummary?: string;
+}
+
+// ============================================================================
+// PHASE 11: ADVANCED AI AGENT INTELLIGENCE & AUTONOMOUS WORKFLOW ORCHESTRATION
+// ============================================================================
+
+export type AgentRole =
+  | 'WORDPRESS_OPERATIONS'
+  | 'TECHNICAL_SEO'
+  | 'CONTENT_STRATEGY'
+  | 'ANALYTICS_REPORTING'
+  | 'WEBSITE_PERFORMANCE'
+  | 'SECURITY_REVIEW'
+  | 'WORKFLOW_PLANNING'
+  | 'CLIENT_REPORTING';
+
+export type AgentLifecycleStatus = 'REGISTERED' | 'ACTIVE' | 'PAUSED' | 'EVALUATION' | 'RETIRED';
+
+export interface SpecialistAgent {
+  id: string;
+  role: AgentRole;
+  name: string;
+  version: string;
+  description: string;
+  status: AgentLifecycleStatus;
+  tenantId?: string; // empty means platform-wide
+  isPlatformDefault: boolean;
+  allowedTaskTypes: string[];
+  permittedTools: string[];
+  requiredPermissions: string[];
+  supportedModels: string[];
+  resourceLimits: {
+    maxTokensPerRun: number;
+    timeoutSeconds: number;
+    maxSubSteps: number;
+  };
+  health: 'HEALTHY' | 'DEGRADED' | 'OFFLINE';
+  evaluationScore: number;
+  lastEvaluatedAt: string;
+}
+
+export type AutonomyLevel =
+  | 'OBSERVE'
+  | 'RECOMMEND'
+  | 'PREPARE'
+  | 'EXECUTE_APPROVED'
+  | 'SCHEDULED_APPROVED_WORKFLOW';
+
+export interface AgentFinding {
+  id: string;
+  agentRole: AgentRole;
+  title: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+  evidence: string;
+  confidencePct: number;
+  uncertaintyNotes?: string;
+  proposedAction?: string;
+}
+
+export interface AgentPlanTask {
+  id: string;
+  parentTaskId?: string;
+  agentRole: AgentRole;
+  title: string;
+  objective: string;
+  dependencies: string[];
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'BLOCKED_APPROVAL';
+  autonomyLevel: AutonomyLevel;
+  outputSchema: string;
+  outputResult?: any;
+  requiresApproval: boolean;
+  approvalId?: string;
+}
+
+export interface MultiAgentObjectivePlan {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  siteId?: string;
+  userObjective: string;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: 'PLANNING' | 'WAITING_APPROVAL' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  totalSteps: number;
+  completedSteps: number;
+  budgetTokens: number;
+  consumedTokens: number;
+  loopIterationCount: number;
+  tasks: AgentPlanTask[];
+  aggregatedFindings: AgentFinding[];
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface AgentHandoffMessage {
+  id: string;
+  parentTaskId: string;
+  childTaskId: string;
+  sourceAgent: AgentRole;
+  targetAgent: AgentRole;
+  tenantId: string;
+  clientId: string;
+  siteId?: string;
+  payload: any;
+  signature: string;
+  timestamp: string;
+}
+
+// ============================================================================
+// PHASE 12: KNOWLEDGE GRAPH & ORGANIZATIONAL MEMORY
+// ============================================================================
+
+export type KnowledgeNodeType =
+  | 'ORGANIZATION'
+  | 'CLIENT'
+  | 'SITE'
+  | 'WORDPRESS_COMPONENT'
+  | 'INTEGRATION'
+  | 'AGENT'
+  | 'TASK'
+  | 'WORKFLOW'
+  | 'INCIDENT'
+  | 'DECISION'
+  | 'DOCUMENT'
+  | 'KEYWORD';
+
+export type KnowledgeEdgeType =
+  | 'OWNS'
+  | 'TARGETS'
+  | 'MANAGES'
+  | 'DEPENDS_ON'
+  | 'RESOLVED_BY'
+  | 'DETECTED_IN'
+  | 'INFLUENCES';
+
+export type KnowledgeVerificationStatus =
+  | 'VERIFIED'
+  | 'USER_PROVIDED'
+  | 'IMPORTED'
+  | 'INFERRED'
+  | 'PENDING_REVIEW';
+
+export type KnowledgeMemoryCategory =
+  | 'SHORT_LIVED_TASK'
+  | 'CLIENT_PROJECT'
+  | 'TENANT_ORGANIZATIONAL'
+  | 'TECHNICAL_SITE'
+  | 'AGENT_OPERATIONAL'
+  | 'DECISION_HISTORY';
+
+export interface KnowledgeGraphNode {
+  id: string;
+  tenantId: string;
+  clientId?: string;
+  siteId?: string;
+  nodeType: KnowledgeNodeType;
+  label: string;
+  category: KnowledgeMemoryCategory;
+  properties: Record<string, any>;
+  verificationStatus: KnowledgeVerificationStatus;
+  confidenceScore: number; // 0 - 100
+  provenanceSource: string;
+  isOutdated: boolean;
+  expiresAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KnowledgeGraphEdge {
+  id: string;
+  tenantId: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  edgeType: KnowledgeEdgeType;
+  weight: number;
+  description?: string;
+  createdAt: string;
+}
+
+export interface KnowledgeSearchResult {
+  node: KnowledgeGraphNode;
+  relevanceScore: number;
+  citations: string[];
+  isStale: boolean;
+}
+
+// ============================================================================
+// PHASE 13: PREDICTIVE INTELLIGENCE & DECISION SUPPORT
+// ============================================================================
+
+export interface MetricDataPoint {
+  timestamp: string;
+  metricName: string;
+  value: number;
+  baselineValue: number;
+  unit: string;
+  source: string;
+  confidencePct: number;
+}
+
+export interface PredictiveAnomaly {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  siteId?: string;
+  metricName: string;
+  observedValue: number;
+  baselineValue: number;
+  deviationZScore: number;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  detectedAt: string;
+  observationPeriod: string;
+  explanation: string;
+  possibleCauses: string[];
+}
+
+export interface PredictiveForecast {
+  id: string;
+  tenantId: string;
+  siteId?: string;
+  targetMetric: string;
+  horizonDays: number;
+  historicalWindowDays: number;
+  forecastValues: {
+    date: string;
+    projected: number;
+    lowerBound: number;
+    upperBound: number;
+  }[];
+  modelMetadata: {
+    algorithm: string;
+    mape: number;
+    rmse: number;
+    confidenceInterval: number;
+  };
+  disclaimer: string;
+}
+
+export interface DecisionRecommendation {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  siteId?: string;
+  title: string;
+  category: 'PERFORMANCE' | 'SECURITY' | 'SEO' | 'AVAILABILITY' | 'COST';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  observedEvidence: string;
+  cautiousImpact: string;
+  estimatedEffort: string;
+  risks: string[];
+  dependencies: string[];
+  requiredPermissions: string[];
+  requiresApproval: boolean;
+  suggestedVerificationMetric: string;
+  status: 'PROPOSED' | 'APPROVED' | 'DISMISSED' | 'EXECUTING' | 'RESOLVED';
+  createdAt: string;
+}
+
+// ============================================================================
+// PHASE 14: ENTERPRISE GOVERNANCE, RISK & COMPLIANCE
+// ============================================================================
+
+export interface TamperResistantAuditRecord {
+  index: number;
+  id: string;
+  timestamp: string;
+  tenantId: string;
+  clientId?: string;
+  siteId?: string;
+  userId: string;
+  userEmail: string;
+  actionType: string;
+  requestPayloadRedacted: string;
+  policyDecision: string;
+  approvedBy?: string;
+  executionResult: 'SUCCESS' | 'FAILED' | 'REJECTED';
+  previousRecordHash: string;
+  currentRecordHash: string;
+  metadata: Record<string, any>;
+}
+
+export interface EnterpriseSsoConfig {
+  tenantId: string;
+  provider: 'SAML_2_0' | 'OIDC' | 'GOOGLE_WORKSPACE' | 'AZURE_AD';
+  isEnabled: boolean;
+  entityId: string;
+  ssoLoginUrl: string;
+  certificateFingerprint: string;
+  autoProvisionUsers: boolean;
+  defaultRole: string;
+  lastConfiguredAt: string;
+}
+
+export interface EnterpriseSecuritySession {
+  sessionId: string;
+  userId: string;
+  tenantId: string;
+  ipAddress: string;
+  userAgent: string;
+  mfaVerified: boolean;
+  createdAt: string;
+  lastActiveAt: string;
+  isRevoked: boolean;
+}
+
+export interface EnterpriseIncidentRecord {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  siteId?: string;
+  title: string;
+  severity: 'SEV_1_CRITICAL' | 'SEV_2_HIGH' | 'SEV_3_MEDIUM' | 'SEV_4_LOW';
+  status: 'REPORTED' | 'CONTAINED' | 'INVESTIGATING' | 'RESOLVED' | 'CLOSED';
+  leadInvestigatorId: string;
+  rootCause?: string;
+  timeline: {
+    timestamp: string;
+    note: string;
+    author: string;
+  }[];
+  containmentActionTaken: string;
+  postIncidentReviewNotes?: string;
+  customerCommReleased: boolean;
+  createdAt: string;
+}
+
+export type DataClassificationLevel = 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL' | 'RESTRICTED';
+
+export interface DataRetentionPolicy {
+  id: string;
+  tenantId: string;
+  classification: DataClassificationLevel;
+  retentionDays: number;
+  autoDelete: boolean;
+  encryptedAtRest: boolean;
+  lastEnforcedAt: string;
+}
+
+export interface PrivacyErasureRequest {
+  id: string;
+  tenantId: string;
+  requestType: 'GDPR_ERASURE' | 'CCPA_ACCESS' | 'DATA_EXPORT';
+  subjectEmail: string;
+  status: 'RECEIVED' | 'PROCESSING' | 'COMPLETED' | 'REJECTED';
+  requestedAt: string;
+  completedAt?: string;
+  redactedArtifactCount: number;
+}
+
+// ============================================================================
+// PHASE 15: WHITE-LABEL SAAS & COMMERCIALIZATION
+// ============================================================================
+
+export interface WhiteLabelBrandingConfig {
+  tenantId: string;
+  organizationName: string;
+  logoUrl: string;
+  faviconUrl?: string;
+  primaryColorHex: string;
+  secondaryColorHex: string;
+  accentColorHex: string;
+  customDomain: string;
+  domainDnsStatus: 'VERIFIED' | 'PENDING' | 'UNCONFIGURED';
+  senderEmailName: string;
+  senderEmailAddress: string;
+  hideImperialPlatformBadges: boolean;
+  customHelpDeskUrl?: string;
+  updatedAt: string;
+}
+
+export type SaaSTierTemplate = 'INTERNAL' | 'STARTER' | 'PROFESSIONAL' | 'AGENCY' | 'ENTERPRISE';
+
+export interface TenantSaaSEntitlement {
+  tenantId: string;
+  tier: SaaSTierTemplate;
+  maxClients: number;
+  maxSites: number;
+  maxUsers: number;
+  maxIntegrations: number;
+  monthlyAgentRunsQuota: number;
+  monthlyTokenBudget: number;
+  storageQuotaMb: number;
+  currentUsage: {
+    clients: number;
+    sites: number;
+    users: number;
+    integrations: number;
+    agentRunsThisMonth: number;
+    tokensThisMonth: number;
+    storageUsedMb: number;
+  };
+  softLimitWarningIssued: boolean;
+  hardLimitBlocked: boolean;
+}
+
+export interface BillingInvoice {
+  id: string;
+  invoiceNumber: string;
+  date: string;
+  amountUsd: number;
+  status: 'PAID' | 'OPEN' | 'FAILED';
+  pdfDownloadUrl: string;
+}
+
+export interface BillingSubscription {
+  id: string;
+  tenantId: string;
+  tier: SaaSTierTemplate;
+  billingCycle: 'MONTHLY' | 'ANNUAL';
+  status: 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  trialEnd?: string;
+  amountUsd: number;
+  paymentMethodSummary: string;
+  invoices: BillingInvoice[];
+}
+
+export interface SupportTicketRecord {
+  id: string;
+  tenantId: string;
+  clientId?: string;
+  requestedBy: string;
+  subject: string;
+  priority: 'LOW' | 'NORMAL' | 'URGENT';
+  status: 'OPEN' | 'IN_PROGRESS' | 'WAITING_CLIENT' | 'RESOLVED';
+  temporarySupportAccessGranted: boolean;
+  accessExpiresAt?: string;
+  createdAt: string;
+  messages: {
+    sender: string;
+    timestamp: string;
+    text: string;
+  }[];
+}
+
+// ============================================================================
+// PHASE 16: GLOBAL SCALE & IMPERIAL AI ECOSYSTEM EXPANSION
+// ============================================================================
+
+export interface ScalabilityQuotaMetrics {
+  tenantId: string;
+  requestCountPerMin: number;
+  maxAllowedPerMin: number;
+  concurrentTasks: number;
+  maxConcurrentTasks: number;
+  cacheHitRatePct: number;
+  queueBacklogSize: number;
+  degradedModeActive: boolean;
+}
+
+export interface DisasterRecoveryDrill {
+  id: string;
+  scheduledAt: string;
+  completedAt?: string;
+  targetSiteId: string;
+  backupId: string;
+  drillType: 'SANDBOX_RESTORE_SIMULATION' | 'FAILOVER_DRILL' | 'INTEGRITY_VERIFICATION';
+  status: 'PASSED' | 'FAILED' | 'IN_PROGRESS';
+  simulatedRtoMinutes: number;
+  targetRtoMinutes: number;
+  simulatedRpoMinutes: number;
+  targetRpoMinutes: number;
+  recoveryReport: string;
+}
+
+export interface InternationalLocaleConfig {
+  tenantId: string;
+  preferredLocale: string;
+  timezone: string;
+  currencyCode: 'USD' | 'EUR' | 'GBP' | 'KES' | 'JPY';
+  currencySymbol: string;
+  exchangeRateToUsd: number;
+  lastRateSyncAt: string;
+  dateFormat: string;
+}
+
+export interface MarketplaceExtension {
+  id: string;
+  name: string;
+  category: 'AGENT' | 'WORKFLOW_TEMPLATE' | 'INTEGRATION_CONNECTOR' | 'REPORT_TEMPLATE';
+  publisherName: string;
+  version: string;
+  isOfficialImperial: boolean;
+  permissionsRequested: string[];
+  reviewStatus: 'APPROVED' | 'PENDING_REVIEW' | 'REVOKED';
+  installCount: number;
+  rating: number;
+  isInstalledByTenant: boolean;
+  documentationUrl: string;
+}
+
+export interface GlobalReleasePipeline {
+  version: string;
+  deploymentStage: 'CANARY' | 'STAGING' | 'GLOBAL_PROD';
+  rolloutPercentage: number;
+  rollbackReady: boolean;
+  automatedSmokeTestsPassed: boolean;
+  deployedAt: string;
+  activeRegions: string[];
+}
+
+export interface Phase10To16AcceptanceItem {
+  id: string;
+  phase: 10 | 11 | 12 | 13 | 14 | 15 | 16;
+  phaseTitle: string;
+  requirementTitle: string;
+  status: 'PASSED' | 'FAILED' | 'PENDING';
+  executedAt?: string;
+  evidence: string;
+}
+
+
 

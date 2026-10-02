@@ -128,6 +128,14 @@ import { ReliabilityCenter } from './components/ReliabilityCenter';
 import { ObservabilityCenter } from './components/ObservabilityCenter';
 import { TenantContextModal } from './components/TenantContextModal';
 import { TenantManagementScreen } from './components/TenantManagementScreen';
+import { Phase10IntegrationsScreen } from './components/Phase10IntegrationsScreen';
+import { Phase11AgentsScreen } from './components/Phase11AgentsScreen';
+import { Phase12KnowledgeScreen } from './components/Phase12KnowledgeScreen';
+import { Phase13PredictiveScreen } from './components/Phase13PredictiveScreen';
+import { Phase14GovernanceScreen } from './components/Phase14GovernanceScreen';
+import { Phase15WhiteLabelScreen } from './components/Phase15WhiteLabelScreen';
+import { Phase16GlobalScaleScreen } from './components/Phase16GlobalScaleScreen';
+import { MasterPhases10To16SuiteModal } from './components/MasterPhases10To16SuiteModal';
 import { persistenceManager } from './services/reliabilityPersistence';
 import { ReconciliationEngine } from './services/reconciliationEngine';
 import { ResourceLockManager } from './services/resourceLockManager';
@@ -139,8 +147,30 @@ import { MultiTenantService } from './services/multiTenantService';
 import { Phase9TestSuite } from './services/phase9TestSuite';
 
 export function App() {
-  const [currentTab, setCurrentTab] = useState<'home' | 'sites' | 'tasks' | 'approvals' | 'reliability' | 'observability' | 'bulk' | 'chat' | 'monitoring' | 'testing' | 'security' | 'settings' | 'tenants'>('home');
+  const [currentTab, setCurrentTab] = useState<
+    | 'home'
+    | 'sites'
+    | 'tasks'
+    | 'approvals'
+    | 'reliability'
+    | 'observability'
+    | 'bulk'
+    | 'chat'
+    | 'monitoring'
+    | 'testing'
+    | 'security'
+    | 'settings'
+    | 'tenants'
+    | 'integrations'
+    | 'agents'
+    | 'knowledge'
+    | 'predictive'
+    | 'governance'
+    | 'whitelabel'
+    | 'globalscale'
+  >('home');
   const [viewMode, setViewMode] = useState<'mobile' | 'desktop' | 'code'>('desktop');
+  const [isMasterCertificationOpen, setIsMasterCertificationOpen] = useState(false);
 
   // Core Repositories State
   const [sites, setSites] = useState<Site[]>(initialDemoSites);
@@ -3156,6 +3186,67 @@ export function App() {
             onDeleteMcpServer={handleDeleteMcpServer}
           />
         );
+      case 'integrations':
+        return (
+          <Phase10IntegrationsScreen
+            tenantId={activeTenantContext?.organization.id || 'org-agency-prime'}
+            clientId={activeTenantContext?.client.id || 'client-acme'}
+            siteId={activeSite?.id}
+            isPlatformAdmin={activeTenantContext?.user.isPlatformAdmin ?? true}
+          />
+        );
+      case 'agents':
+        return (
+          <Phase11AgentsScreen
+            tenantId={activeTenantContext?.organization.id || 'org-agency-prime'}
+            clientId={activeTenantContext?.client.id || 'client-acme'}
+            siteId={activeSite?.id}
+            isPlatformAdmin={activeTenantContext?.user.isPlatformAdmin ?? true}
+          />
+        );
+      case 'knowledge':
+        return (
+          <Phase12KnowledgeScreen
+            tenantId={activeTenantContext?.organization.id || 'org-agency-prime'}
+            clientId={activeTenantContext?.client.id || 'client-acme'}
+            siteId={activeSite?.id}
+            isPlatformAdmin={activeTenantContext?.user.isPlatformAdmin ?? true}
+          />
+        );
+      case 'predictive':
+        return (
+          <Phase13PredictiveScreen
+            tenantId={activeTenantContext?.organization.id || 'org-agency-prime'}
+            clientId={activeTenantContext?.client.id || 'client-acme'}
+            siteId={activeSite?.id}
+            isPlatformAdmin={activeTenantContext?.user.isPlatformAdmin ?? true}
+          />
+        );
+      case 'governance':
+        return (
+          <Phase14GovernanceScreen
+            tenantId={activeTenantContext?.organization.id || 'org-agency-prime'}
+            clientId={activeTenantContext?.client.id || 'client-acme'}
+            siteId={activeSite?.id}
+            isPlatformAdmin={activeTenantContext?.user.isPlatformAdmin ?? true}
+          />
+        );
+      case 'whitelabel':
+        return (
+          <Phase15WhiteLabelScreen
+            tenantId={activeTenantContext?.organization.id || 'org-agency-prime'}
+            clientId={activeTenantContext?.client.id || 'client-acme'}
+            isPlatformAdmin={activeTenantContext?.user.isPlatformAdmin ?? true}
+          />
+        );
+      case 'globalscale':
+        return (
+          <Phase16GlobalScaleScreen
+            tenantId={activeTenantContext?.organization.id || 'org-agency-prime'}
+            clientId={activeTenantContext?.client.id || 'client-acme'}
+            isPlatformAdmin={activeTenantContext?.user.isPlatformAdmin ?? true}
+          />
+        );
       default:
         return null;
     }
@@ -3170,6 +3261,7 @@ export function App() {
         activeTenantContext={activeTenantContext}
         onOpenSiteSelector={() => setIsSiteSelectorOpen(true)}
         onOpenTenantContextModal={() => setIsTenantModalOpen(true)}
+        onOpenMasterCertification={() => setIsMasterCertificationOpen(true)}
         viewMode={viewMode}
         onSetViewMode={setViewMode}
       />
@@ -3363,6 +3455,11 @@ export function App() {
             ).length
           }
         />
+      )}
+
+      {/* Phases 10-16 Master Acceptance Certification Modal */}
+      {isMasterCertificationOpen && (
+        <MasterPhases10To16SuiteModal onClose={() => setIsMasterCertificationOpen(false)} />
       )}
     </div>
   );
