@@ -1,50 +1,16 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { 
-  initialDemoSites, 
-  initialDemoTasks, 
-  initialAuditEvents, 
   availableAiModels,
-  initialMcpServers,
-  initialMcpTools,
-  initialProductionTasks,
-  initialBackupCheckpoints,
-  initialBulkBatches,
-  initialAdvancedApprovals,
-  initialProductionMonitor,
   initialCircuitBreakers,
   initialProductionTests,
-  initialSecurityEvents,
-  initialProductionReports,
   initialSecurityInvariants,
   initialChecklistItems,
   initialIntegrationWorkflow,
-  initialReconciledTasks,
-  initialDeadLetterItems,
-  initialResourceLocks,
-  initialMcpHealthDetail,
-  initialSiteHealthReports,
-  initialTaskRecoveryCheckpoints,
   initialReliabilityTests,
-  initialStructuredLogs,
-  initialObservabilityMetrics,
-  initialAnomalies,
-  initialIncidents,
-  initialAlerts,
-  initialFairQueue,
   initialChaosScenarios,
   initialPhase8AcceptanceItems,
-  initialOrganizations,
-  initialClientCompanies,
-  initialTenantUsers,
-  initialMemberships,
   initialPhase9TestCases,
   initialSaasPlans,
-  initialSiteBaselines,
-  initialCapabilityChangeEvents,
-  initialClientOnboardingSessions,
-  initialTenantUsageSummaries,
-  initialClientActivityLogs,
-  initialPlatformAdminAudits,
   initialPhase9AcceptanceChecklist
 } from './data/sampleData';
 import { 
@@ -103,11 +69,7 @@ import {
   Phase9AcceptanceChecklistItem,
   ClientOnboardingStepId
 } from './types';
-import { TopBar } from './components/TopBar';
-import { BottomNav } from './components/BottomNav';
-import { HomeScreen } from './components/HomeScreen';
 import { SitesScreen } from './components/SitesScreen';
-import { TasksScreen } from './components/TasksScreen';
 import { ChatScreen } from './components/ChatScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { SiteSelectorModal } from './components/SiteSelectorModal';
@@ -163,6 +125,88 @@ import { ChaosAndRecoveryEngine } from './services/chaosAndRecoveryEngine';
 import { MultiTenantService } from './services/multiTenantService';
 import { Phase9TestSuite } from './services/phase9TestSuite';
 
+// Brand New App Defaults: Clean Platform Administrator & Primary Workspace
+const defaultAdminUser: TenantUser = {
+  id: 'usr-admin',
+  email: 'admin@imperial-ops.internal',
+  displayName: 'Platform Administrator',
+  isPlatformAdmin: true,
+  activeOrganizationId: 'org-default',
+  createdAt: new Date().toISOString(),
+  lastLogin: 'Just now',
+};
+
+const defaultOrganization: Organization = {
+  id: 'org-default',
+  name: 'Primary Workspace',
+  slug: 'primary-workspace',
+  tier: 'ENTERPRISE',
+  status: 'ACTIVE',
+  createdAt: new Date().toISOString(),
+  contactEmail: 'admin@imperial-ops.internal',
+  billingPlan: {
+    planName: 'Enterprise SaaS Suite',
+    billingCycle: 'ANNUAL',
+    status: 'ACTIVE',
+    renewalDate: '2027-12-31',
+    mcpQuotaPerMonth: 100000,
+    usedMcpThisMonth: 0,
+  },
+  settings: {
+    maxClients: 100,
+    maxSites: 200,
+    maxConcurrentTasks: 10,
+    enforceApprovalForHighRisk: true,
+    mcpRateLimitPerMin: 120,
+    dataRetentionDays: 90,
+  },
+};
+
+const defaultMembership: Membership = {
+  id: 'mem-admin-default',
+  organizationId: 'org-default',
+  userId: 'usr-admin',
+  role: 'OWNER',
+  permissions: [
+    'VIEW_SITES',
+    'MANAGE_SITES',
+    'VIEW_TASKS',
+    'CREATE_TASKS',
+    'APPROVE_TASKS',
+    'EXECUTE_TASKS',
+    'MANAGE_CONNECTIONS',
+    'VIEW_AUDIT',
+    'MANAGE_USERS',
+    'MANAGE_BILLING',
+    'MANAGE_SECURITY'
+  ],
+  status: 'ACTIVE',
+  joinedAt: new Date().toISOString(),
+};
+
+const defaultObservabilityMetrics: ObservabilityMetrics = {
+  tasksCreated: 0,
+  tasksCompleted: 0,
+  tasksFailed: 0,
+  tasksPartiallyCompleted: 0,
+  avgTaskDurationSeconds: 0,
+  avgOperationDurationMs: 0,
+  mcpRequestLatencyMs: 0,
+  mcpErrorRatePercent: 0,
+  totalRetryCount: 0,
+  verificationFailuresCount: 0,
+  rollbackCount: 0,
+  authenticationFailuresCount: 0,
+  securityBlocksCount: 0,
+  deadLetterCount: 0,
+  queueDepth: 0,
+  successRatePercent: 100,
+  failureRatePercent: 0,
+  verificationSuccessRatePercent: 100,
+  avgRecoveryTimeSeconds: 0,
+  avgMcpResponseTimeMs: 0,
+};
+
 export function App() {
   const [currentTab, setCurrentTab] = useState<
     | 'overview'
@@ -217,13 +261,13 @@ export function App() {
 
   // Core Repositories State (Clean Slate by default for custom input)
   const [sites, setSites] = useState<Site[]>(() =>
-    getStoredState<Site[]>('imperial_v2_sites', [])
+    getStoredState<Site[]>('imperial_v3_sites', [])
   );
   const [tasks, setTasks] = useState<Task[]>(() =>
-    getStoredState<Task[]>('imperial_v2_tasks', [])
+    getStoredState<Task[]>('imperial_v3_tasks', [])
   );
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(() =>
-    getStoredState<AuditEvent[]>('imperial_v2_audit', [])
+    getStoredState<AuditEvent[]>('imperial_v3_audit', [])
   );
   const [models, setModels] = useState<AIModel[]>(availableAiModels);
   const [selectedModelId, setSelectedModelId] = useState<string>('google/gemini-2.0-flash-exp:free');
@@ -231,19 +275,19 @@ export function App() {
 
   // Phase 7: Production WordPress Operations & Autonomous Task Execution
   const [productionTasks, setProductionTasks] = useState<ProductionTask[]>(() =>
-    getStoredState<ProductionTask[]>('imperial_v2_production_tasks', [])
+    getStoredState<ProductionTask[]>('imperial_v3_production_tasks', [])
   );
   const [backupCheckpoints, setBackupCheckpoints] = useState<BackupCheckpoint[]>(() =>
-    getStoredState<BackupCheckpoint[]>('imperial_v2_checkpoints', [])
+    getStoredState<BackupCheckpoint[]>('imperial_v3_checkpoints', [])
   );
   const [bulkBatches, setBulkBatches] = useState<BulkOperationBatch[]>(() =>
-    getStoredState<BulkOperationBatch[]>('imperial_v2_batches', [])
+    getStoredState<BulkOperationBatch[]>('imperial_v3_batches', [])
   );
   const [advancedApprovals, setAdvancedApprovals] = useState<AdvancedApprovalItem[]>(() =>
-    getStoredState<AdvancedApprovalItem[]>('imperial_v2_approvals', [])
+    getStoredState<AdvancedApprovalItem[]>('imperial_v3_approvals', [])
   );
   const [securityEvents, setSecurityEvents] = useState<SecurityEventItem[]>(() =>
-    getStoredState<SecurityEventItem[]>('imperial_v2_security_events', [])
+    getStoredState<SecurityEventItem[]>('imperial_v3_security_events', [])
   );
   const [productionMetrics, setProductionMetrics] = useState<ProductionMonitorMetrics>({
     mcpLatencyMs: 0,
@@ -277,45 +321,45 @@ export function App() {
 
   // Phase 8: Production Reliability, Recovery & Self-Healing State
   const [reconciledTasks, setReconciledTasks] = useState<ReconciledTaskRecord[]>(() =>
-    getStoredState<ReconciledTaskRecord[]>('imperial_v2_reconciled', [])
+    getStoredState<ReconciledTaskRecord[]>('imperial_v3_reconciled', [])
   );
   const [deadLetterItems, setDeadLetterItems] = useState<DeadLetterItem[]>(() =>
-    getStoredState<DeadLetterItem[]>('imperial_v2_dead_letter', [])
+    getStoredState<DeadLetterItem[]>('imperial_v3_dead_letter', [])
   );
   const [resourceLocks, setResourceLocks] = useState<ResourceLock[]>(() =>
-    getStoredState<ResourceLock[]>('imperial_v2_locks', [])
+    getStoredState<ResourceLock[]>('imperial_v3_locks', [])
   );
-  const [mcpHealthList, setMcpHealthList] = useState<McpConnectionHealth[]>(initialMcpHealthDetail);
+  const [mcpHealthList, setMcpHealthList] = useState<McpConnectionHealth[]>([]);
   const [siteHealthReports, setSiteHealthReports] = useState<SiteHealthReport[]>([]);
   const [recoveryCheckpoints, setRecoveryCheckpoints] = useState<TaskRecoveryCheckpoint[]>(() =>
-    getStoredState<TaskRecoveryCheckpoint[]>('imperial_v2_recovery_points', [])
+    getStoredState<TaskRecoveryCheckpoint[]>('imperial_v3_recovery_points', [])
   );
   const [reliabilityTests, setReliabilityTests] = useState<ReliabilityTestCase[]>(initialReliabilityTests);
   const [isRunningReliability, setIsRunningReliability] = useState(false);
 
   // Phase 8: Section 2 & 3 - Observability, Incident & Chaos State
   const [structuredLogs, setStructuredLogs] = useState<StructuredLogEntry[]>(() =>
-    getStoredState<StructuredLogEntry[]>('imperial_v2_logs', [])
+    getStoredState<StructuredLogEntry[]>('imperial_v3_logs', [])
   );
-  const [observabilityMetrics, setObservabilityMetrics] = useState<ObservabilityMetrics>(initialObservabilityMetrics);
+  const [observabilityMetrics, setObservabilityMetrics] = useState<ObservabilityMetrics>(defaultObservabilityMetrics);
   const [anomalies, setAnomalies] = useState<AnomalyEvent[]>(() =>
-    getStoredState<AnomalyEvent[]>('imperial_v2_anomalies', [])
+    getStoredState<AnomalyEvent[]>('imperial_v3_anomalies', [])
   );
   const [incidents, setIncidents] = useState<IncidentItem[]>(() =>
-    getStoredState<IncidentItem[]>('imperial_v2_incidents', [])
+    getStoredState<IncidentItem[]>('imperial_v3_incidents', [])
   );
   const [alerts, setAlerts] = useState<AlertItem[]>(() =>
-    getStoredState<AlertItem[]>('imperial_v2_alerts', [])
+    getStoredState<AlertItem[]>('imperial_v3_alerts', [])
   );
   const [fairQueue, setFairQueue] = useState<FairQueueItem[]>(() =>
-    getStoredState<FairQueueItem[]>('imperial_v2_fair_queue', [])
+    getStoredState<FairQueueItem[]>('imperial_v3_fair_queue', [])
   );
   const [chaosScenarios, setChaosScenarios] = useState<ChaosScenario[]>(initialChaosScenarios);
   const [isRunningChaos, setIsRunningChaos] = useState(false);
 
   // Section 3: Reports, Invariants, Checklist, Integration Workflow
   const [productionReports, setProductionReports] = useState<ProductionReport[]>(() =>
-    getStoredState<ProductionReport[]>('imperial_v2_reports', [])
+    getStoredState<ProductionReport[]>('imperial_v3_reports', [])
   );
   const [securityInvariants, setSecurityInvariants] = useState<SecurityInvariantItem[]>(initialSecurityInvariants);
   const [readinessChecklist, setReadinessChecklist] = useState<ChecklistItem[]>(initialChecklistItems);
@@ -328,18 +372,18 @@ export function App() {
 
   // Phase 9: Multi-Tenant Platform & SaaS Architecture State
   const [organizations, setOrganizations] = useState<Organization[]>(() =>
-    getStoredState<Organization[]>('imperial_v2_orgs', initialOrganizations)
+    getStoredState<Organization[]>('imperial_v3_orgs', [defaultOrganization])
   );
   const [clients, setClients] = useState<ClientCompany[]>(() =>
-    getStoredState<ClientCompany[]>('imperial_v2_clients', [])
+    getStoredState<ClientCompany[]>('imperial_v3_clients', [])
   );
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>(() =>
-    getStoredState<TenantUser[]>('imperial_v2_users', initialTenantUsers)
+    getStoredState<TenantUser[]>('imperial_v3_users', [defaultAdminUser])
   );
   const [memberships, setMemberships] = useState<Membership[]>(() =>
-    getStoredState<Membership[]>('imperial_v2_memberships', initialMemberships)
+    getStoredState<Membership[]>('imperial_v3_memberships', [defaultMembership])
   );
-  const [currentUser, setCurrentUser] = useState<TenantUser>(() => tenantUsers[0] || initialTenantUsers[0]);
+  const [currentUser, setCurrentUser] = useState<TenantUser>(() => defaultAdminUser);
   const [phase9TestCases, setPhase9TestCases] = useState<Phase9TestCase[]>(initialPhase9TestCases);
   const [isRunningPhase9, setIsRunningPhase9] = useState(false);
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
@@ -368,7 +412,7 @@ export function App() {
 
   // OpenRouter Credentials & Config State
   const [openRouterConfig, setOpenRouterConfig] = useState<OpenRouterConfig>(() =>
-    getStoredState<OpenRouterConfig>('imperial_v2_openrouter', {
+    getStoredState<OpenRouterConfig>('imperial_v3_openrouter', {
       apiKey: '',
       maskedApiKey: '',
       isConnected: false,
@@ -379,16 +423,16 @@ export function App() {
 
   // Phase 3: Remote MCP Engine State
   const [mcpServers, setMcpServers] = useState<MCPServer[]>(() =>
-    getStoredState<MCPServer[]>('imperial_v2_mcp_servers', [])
+    getStoredState<MCPServer[]>('imperial_v3_mcp_servers', [])
   );
   const [mcpTools, setMcpTools] = useState<Record<string, McpTool[]>>(() =>
-    getStoredState<Record<string, McpTool[]>>('imperial_v2_mcp_tools', {})
+    getStoredState<Record<string, McpTool[]>>('imperial_v3_mcp_tools', {})
   );
   const [mcpBearerTokens, setMcpBearerTokens] = useState<Record<string, string>>({});
 
   // Active Site Context & Strict Isolation
   const [activeSiteId, setActiveSiteId] = useState<string>(() =>
-    getStoredState<string>('imperial_v2_active_site_id', '')
+    getStoredState<string>('imperial_v3_active_site_id', '')
   );
   const activeSite = sites.find((s) => s.id === activeSiteId) || sites[0] || null;
 
@@ -404,13 +448,13 @@ export function App() {
 
   // Site-Isolated Chat Messages State (Record<siteId, ChatMessage[]>)
   const [messagesBySite, setMessagesBySite] = useState<Record<string, ChatMessage[]>>(() =>
-    getStoredState<Record<string, ChatMessage[]>>('imperial_v2_messages_by_site', {})
+    getStoredState<Record<string, ChatMessage[]>>('imperial_v3_messages_by_site', {})
   );
 
   // Durable Storage Persistence Hooks
   useEffect(() => {
     try {
-      localStorage.setItem('imperial_v2_sites', JSON.stringify(sites));
+      localStorage.setItem('imperial_v3_sites', JSON.stringify(sites));
       if (sites.length > 0 && (!activeSiteId || !sites.some((s) => s.id === activeSiteId))) {
         setActiveSiteId(sites[0].id);
       }
@@ -419,56 +463,74 @@ export function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('imperial_v2_clients', JSON.stringify(clients));
+      localStorage.setItem('imperial_v3_clients', JSON.stringify(clients));
     } catch {}
   }, [clients]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('imperial_v2_production_tasks', JSON.stringify(productionTasks));
+      localStorage.setItem('imperial_v3_production_tasks', JSON.stringify(productionTasks));
     } catch {}
   }, [productionTasks]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('imperial_v2_approvals', JSON.stringify(advancedApprovals));
+      localStorage.setItem('imperial_v3_approvals', JSON.stringify(advancedApprovals));
     } catch {}
   }, [advancedApprovals]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('imperial_v2_audit', JSON.stringify(auditEvents));
+      localStorage.setItem('imperial_v3_audit', JSON.stringify(auditEvents));
     } catch {}
   }, [auditEvents]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('imperial_v2_security_events', JSON.stringify(securityEvents));
+      localStorage.setItem('imperial_v3_security_events', JSON.stringify(securityEvents));
     } catch {}
   }, [securityEvents]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('imperial_v2_openrouter', JSON.stringify(openRouterConfig));
+      localStorage.setItem('imperial_v3_openrouter', JSON.stringify(openRouterConfig));
     } catch {}
   }, [openRouterConfig]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('imperial_v2_messages_by_site', JSON.stringify(messagesBySite));
+      localStorage.setItem('imperial_v3_messages_by_site', JSON.stringify(messagesBySite));
     } catch {}
   }, [messagesBySite]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('imperial_v2_active_site_id', activeSiteId);
+      localStorage.setItem('imperial_v3_active_site_id', activeSiteId);
     } catch {}
   }, [activeSiteId]);
 
-  // Clean Slate and Demo Switcher Handlers
+  // Clean Slate Handlers
   const handleResetToCleanApp = () => {
     if (typeof window !== 'undefined') {
       const keys = [
+        'imperial_v3_sites',
+        'imperial_v3_clients',
+        'imperial_v3_tasks',
+        'imperial_v3_production_tasks',
+        'imperial_v3_approvals',
+        'imperial_v3_audit',
+        'imperial_v3_security_events',
+        'imperial_v3_checkpoints',
+        'imperial_v3_batches',
+        'imperial_v3_logs',
+        'imperial_v3_incidents',
+        'imperial_v3_anomalies',
+        'imperial_v3_alerts',
+        'imperial_v3_fair_queue',
+        'imperial_v3_messages_by_site',
+        'imperial_v3_active_site_id',
+        'imperial_v3_mcp_servers',
+        'imperial_v3_mcp_tools',
         'imperial_v2_sites',
         'imperial_v2_clients',
         'imperial_v2_tasks',
@@ -514,24 +576,6 @@ export function App() {
     setActiveSiteId('');
     setSelectedClientForDetail(null);
     setSelectedSiteForDetail(null);
-  };
-
-  const handleSeedDemoShowcase = () => {
-    setClients(initialClientCompanies);
-    setSites(initialDemoSites);
-    setTasks(initialDemoTasks);
-    setProductionTasks(initialProductionTasks);
-    setAdvancedApprovals(initialAdvancedApprovals);
-    setAuditEvents(initialAuditEvents);
-    setSecurityEvents(initialSecurityEvents);
-    setBackupCheckpoints(initialBackupCheckpoints);
-    setBulkBatches(initialBulkBatches);
-    setStructuredLogs(initialStructuredLogs);
-    setIncidents(initialIncidents);
-    setAnomalies(initialAnomalies);
-    setAlerts(initialAlerts);
-    setFairQueue(initialFairQueue);
-    setActiveSiteId(initialDemoSites[0]?.id || '');
   };
 
   const [approvalModalData, setApprovalModalData] = useState<{
@@ -3498,7 +3542,6 @@ export function App() {
             onDisconnectMcpServer={handleDisconnectMcpServer}
             onDeleteMcpServer={handleDeleteMcpServer}
             onResetAllData={handleResetToCleanApp}
-            onSeedDemoData={handleSeedDemoShowcase}
           />
         );
       case 'integrations':

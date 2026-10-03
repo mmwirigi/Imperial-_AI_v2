@@ -1,17 +1,13 @@
 import React from 'react';
 import {
-  Building2,
   Briefcase,
-  Globe,
   ChevronDown,
   Search,
   Bell,
-  Sparkles,
   Smartphone,
   Monitor,
   Code,
   ShieldCheck,
-  CheckCircle2,
   Menu
 } from 'lucide-react';
 import { Site, ActiveTenantContext } from '../types';
@@ -34,7 +30,7 @@ interface AppHeaderProps {
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   activeTenantContext,
-  activeSite,
+  activeSite: _activeSite,
   onOpenTenantSelector,
   onOpenGlobalSearch,
   onOpenSyncModal,
@@ -44,155 +40,156 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   viewMode,
   onSetViewMode,
   onToggleMobileMenu,
-  currentAiModelName = 'Gemini 2.0 Flash'
+  currentAiModelName: _currentAiModelName = 'Gemini 2.0 Flash'
 }) => {
   return (
-    <header className="h-16 bg-white border-b border-slate-200/90 px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 z-20">
-      {/* Left: Mobile Menu Trigger & Multi-Tier Hierarchy Breadcrumb Context */}
-      <div className="flex items-center gap-3 min-w-0">
+    <header className="h-14 md:h-16 bg-white border-b border-slate-200/90 px-3 sm:px-6 flex items-center justify-between gap-3 shrink-0 z-20">
+      {/* Left: Mobile Brand & Menu / Desktop Scope Selector */}
+      <div className="flex items-center gap-2.5 min-w-0">
         {onToggleMobileMenu && (
           <button
             onClick={onToggleMobileMenu}
-            className="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl"
+            className="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             title="Toggle Menu"
+            aria-label="Toggle navigation menu"
           >
             <Menu className="w-5 h-5" />
           </button>
         )}
 
-        {/* Visually Obvious Hierarchy Context Bar */}
-        {activeTenantContext ? (
-          <button
-            onClick={onOpenTenantSelector}
-            title="Switch Organization, Client or Site Scope"
-            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100/90 border border-slate-200 rounded-xl text-left transition-all group shadow-2xs max-w-full sm:max-w-md cursor-pointer"
-          >
-            <div className="flex items-center gap-1.5 text-xs">
-              {/* Organization */}
-              <span className="hidden lg:flex items-center gap-1 text-slate-500 font-semibold truncate max-w-[120px]">
-                <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="truncate">{activeTenantContext.organization.name}</span>
-              </span>
-              <span className="hidden lg:inline text-slate-300 font-mono text-[10px]">↓</span>
+        {/* Mobile Brand Title */}
+        <div className="flex items-center gap-2 md:hidden">
+          <div className="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-xs shadow-2xs">
+            I
+          </div>
+          <span className="font-bold text-slate-900 text-sm tracking-tight">Imperial AI</span>
+        </div>
 
-              {/* Client */}
-              <span className="flex items-center gap-1 text-slate-900 font-bold truncate max-w-[140px]">
-                <Briefcase className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="truncate">{activeTenantContext.client.name}</span>
+        {/* Desktop Scope Hierarchy Selector */}
+        <div className="hidden md:flex items-center">
+          {activeTenantContext ? (
+            <button
+              onClick={onOpenTenantSelector}
+              title="Switch Client or Site Scope"
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100/90 border border-slate-200/90 rounded-xl text-left transition-all cursor-pointer group shadow-2xs text-xs max-w-xs"
+            >
+              <Briefcase className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="font-semibold text-slate-800 truncate max-w-[110px]">
+                {activeTenantContext.client.name}
               </span>
-              <span className="text-slate-300 font-mono text-[10px]">↓</span>
-
-              {/* Site Domain & Connection */}
-              <span className="flex items-center gap-1 text-emerald-700 font-medium truncate max-w-[130px]">
-                <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">
-                  {activeTenantContext.site ? activeTenantContext.site.siteName : 'Primary Site'}
-                </span>
+              <span className="text-slate-300 font-mono">/</span>
+              <span className="text-slate-500 truncate max-w-[110px]">
+                {activeTenantContext.site ? activeTenantContext.site.siteName : 'All Sites'}
               </span>
+              <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-slate-700 shrink-0 ml-1 transition-colors" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="font-semibold text-slate-700">Workspace Console</span>
+              <span className="text-slate-300">·</span>
+              <span className="text-[11px] text-slate-400">Autonomous Fleet Operations</span>
             </div>
-
-            <div className="flex items-center gap-1 pl-2 border-l border-slate-200 shrink-0">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Connected" />
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition-colors" />
-            </div>
-          </button>
-        ) : (
-          <div className="text-xs font-semibold text-slate-600">Enterprise AI Command Center</div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Middle: Global Search Trigger */}
-      <div className="flex-1 max-w-md hidden md:block">
+      {/* Middle: Clean Global Search Input (Desktop) */}
+      <div className="flex-1 max-w-sm hidden lg:block">
         <button
           onClick={onOpenGlobalSearch}
-          className="w-full flex items-center justify-between px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-400 hover:text-slate-600 text-xs transition-all shadow-2xs group"
+          className="w-full flex items-center justify-between px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-400 hover:text-slate-600 text-xs transition-all shadow-2xs group cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-500 transition-colors" />
-            <span>Search clients, sites, tasks, operations...</span>
+            <span>Search fleet, tasks, clients...</span>
           </div>
-          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-white text-slate-500 border border-slate-200 rounded shadow-2xs font-semibold">
+          <kbd className="hidden xl:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-white text-slate-500 border border-slate-200 rounded shadow-2xs font-semibold">
             ⌘K
           </kbd>
         </button>
       </div>
 
-      {/* Right Controls */}
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Right Controls: Neat, uncongested responsive controls */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Mobile Search Button */}
         <button
           onClick={onOpenGlobalSearch}
-          className="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl"
+          className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
           title="Search"
+          aria-label="Search"
         >
           <Search className="w-4 h-4" />
         </button>
 
-        {/* Two-Way Data Sync Status Pill */}
+        {/* Sync Status Badge (Compact & Light Theme) */}
         <SyncStatusBadge onClick={onOpenSyncModal} />
 
-        {/* Master Acceptance Suite Button */}
+        {/* Desktop View Switcher (Desktop vs Mobile Preview vs Code Explorer) */}
+        <div className="hidden md:inline-flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 text-xs">
+          <button
+            type="button"
+            onClick={() => onSetViewMode('desktop')}
+            title="Desktop Console View"
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              viewMode === 'desktop'
+                ? 'bg-white text-slate-900 font-semibold shadow-2xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Monitor className="w-3.5 h-3.5 text-slate-500" />
+            <span>Desktop</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onSetViewMode('mobile')}
+            title="Mobile Device Simulator (Pixel 8)"
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              viewMode === 'mobile'
+                ? 'bg-white text-slate-900 font-semibold shadow-2xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Smartphone className="w-3.5 h-3.5 text-slate-500" />
+            <span>Mobile</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onSetViewMode('code')}
+            title="Architecture & Code Explorer"
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              viewMode === 'code'
+                ? 'bg-white text-slate-900 font-semibold shadow-2xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Code className="w-3.5 h-3.5 text-slate-500" />
+            <span>Code</span>
+          </button>
+        </div>
+
+        {/* Master Acceptance Suite Button (Large screens only) */}
         {onOpenMasterCertification && (
           <button
             onClick={onOpenMasterCertification}
             title="Open Master Phases 10-16 Certification Suite"
-            className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-semibold transition-all shadow-2xs"
+            className="hidden xl:flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
             <span>Phases 10–16</span>
           </button>
         )}
 
-        {/* View Mode Switcher */}
-        <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-          <button
-            onClick={() => onSetViewMode('desktop')}
-            title="Command Center Desktop Console"
-            className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
-              viewMode === 'desktop'
-                ? 'bg-white text-slate-900 font-bold shadow-2xs border border-slate-200/80'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Monitor className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline">Console</span>
-          </button>
-          <button
-            onClick={() => onSetViewMode('mobile')}
-            title="Android Device Viewport (Pixel 8 Preview)"
-            className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
-              viewMode === 'mobile'
-                ? 'bg-white text-slate-900 font-bold shadow-2xs border border-slate-200/80'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline">Android</span>
-          </button>
-          <button
-            onClick={() => onSetViewMode('code')}
-            title="Kotlin Codebase Architecture"
-            className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
-              viewMode === 'code'
-                ? 'bg-white text-slate-900 font-bold shadow-2xs border border-slate-200/80'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Code className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline">Kotlin</span>
-          </button>
-        </div>
-
-        {/* Notifications */}
+        {/* Notifications Button */}
         {onOpenNotifications && (
           <button
             onClick={onOpenNotifications}
-            className="relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
-            title="Notifications"
+            className="relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            title="Security & System Alerts"
+            aria-label="Security and system alerts"
           >
             <Bell className="w-4 h-4" />
             {unreadNotificationsCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full" />
             )}
           </button>
         )}
