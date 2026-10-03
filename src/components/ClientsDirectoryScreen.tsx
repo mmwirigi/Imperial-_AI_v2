@@ -117,7 +117,8 @@ export const ClientsDirectoryScreen: React.FC<ClientsDirectoryScreenProps> = ({
       </div>
 
       {/* Client Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {filteredClients.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredClients.map((client) => {
           const clientSites = sites.filter((s) => s.clientId === client.id);
           const clientTasks = tasks.filter((t) => t.clientId === client.id);
@@ -241,6 +242,26 @@ export const ClientsDirectoryScreen: React.FC<ClientsDirectoryScreenProps> = ({
           );
         })}
       </div>
+      ) : (
+        <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto">
+            <Users className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-slate-900">
+              {clients.length === 0 ? 'No Client Organizations Registered' : 'No Clients Found'}
+            </h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              {clients.length === 0
+                ? 'Get started by onboarding your first client organization. Configure their industry profile, WordPress fleet, and security isolation.'
+                : 'No client organizations matched your search and filter criteria.'}
+            </p>
+          </div>
+          <Button variant="primary" size="sm" onClick={onOpenAddClientModal} icon={Plus}>
+            Add Client
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

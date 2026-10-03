@@ -258,56 +258,76 @@ export const CommandCenterDashboard: React.FC<CommandCenterDashboardProps> = ({
               </Button>
             </div>
 
-            <div className="space-y-2.5">
-              {tasks.slice(0, 3).map((task) => (
-                <div
-                  key={task.id}
-                  onClick={() => onOpenTaskDetail(task)}
-                  className="p-3.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/70 cursor-pointer transition-all space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900 truncate">
-                      {task.title}
-                    </span>
-                    <Badge
-                      variant={
-                        task.overallStatus === 'RUNNING'
-                          ? 'warning'
-                          : task.overallStatus === 'COMPLETED'
-                          ? 'success'
-                          : task.overallStatus === 'FAILED'
-                          ? 'error'
-                          : 'neutral'
-                      }
-                      size="sm"
-                      dot={task.overallStatus === 'RUNNING'}
-                    >
-                      {task.overallStatus}
-                    </Badge>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[11px] text-slate-500 font-mono">
-                      <span>{task.siteName}</span>
-                      <span>
-                        Step {task.currentStepIndex + 1} of {task.steps.length}
+            {tasks.length > 0 ? (
+              <div className="space-y-2.5">
+                {tasks.slice(0, 3).map((task) => (
+                  <div
+                    key={task.id}
+                    onClick={() => onOpenTaskDetail(task)}
+                    className="p-3.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/70 cursor-pointer transition-all space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900 truncate">
+                        {task.title}
                       </span>
+                      <Badge
+                        variant={
+                          task.overallStatus === 'RUNNING'
+                            ? 'warning'
+                            : task.overallStatus === 'COMPLETED'
+                            ? 'success'
+                            : task.overallStatus === 'FAILED'
+                            ? 'error'
+                            : 'neutral'
+                        }
+                        size="sm"
+                        dot={task.overallStatus === 'RUNNING'}
+                      >
+                        {task.overallStatus}
+                      </Badge>
                     </div>
-                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500 transition-all duration-300"
-                        style={{
-                          width: `${Math.round(
-                            ((task.currentStepIndex + 1) / task.steps.length) * 100
-                          )}%`
-                        }}
-                      />
+
+                    {/* Progress Bar */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] text-slate-500 font-mono">
+                        <span>{task.siteName}</span>
+                        <span>
+                          Step {task.currentStepIndex + 1} of {task.steps.length}
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-500 transition-all duration-300"
+                          style={{
+                            width: `${Math.round(
+                              ((task.currentStepIndex + 1) / task.steps.length) * 100
+                            )}%`
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 text-center space-y-2">
+                <CheckSquare className="w-6 h-6 text-amber-500 mx-auto" />
+                <div className="text-xs font-bold text-slate-800">
+                  Task Queue Ready
                 </div>
-              ))}
-            </div>
+                <div className="text-[11px] text-slate-500">
+                  No active or queued tasks. Create a new operational task in the Task Engine.
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigateToTab('tasks')}
+                  icon={Plus}
+                >
+                  Create Task
+                </Button>
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -337,67 +357,84 @@ export const CommandCenterDashboard: React.FC<CommandCenterDashboardProps> = ({
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {displayClients.map((client) => {
-            const industryBadge = getIndustryBadge(client.industry);
-            const clientSites = sites.filter((s) => s.clientId === client.id);
-            const clientTasks = tasks.filter((t) => t.clientId === client.id);
-            const isCurrentActive =
-              activeTenantContext?.client.id === client.id;
+        {displayClients.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayClients.map((client) => {
+              const industryBadge = getIndustryBadge(client.industry);
+              const clientSites = sites.filter((s) => s.clientId === client.id);
+              const clientTasks = tasks.filter((t) => t.clientId === client.id);
+              const isCurrentActive =
+                activeTenantContext?.client.id === client.id;
 
-            return (
-              <div
-                key={client.id}
-                onClick={() => onSwitchClient(client.id)}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 group ${
-                  isCurrentActive
-                    ? 'border-amber-400 bg-amber-50/30 shadow-xs'
-                    : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50/60'
-                }`}
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 font-bold flex items-center justify-center text-xs shadow-2xs">
-                        {client.name.substring(0, 2).toUpperCase()}
+              return (
+                <div
+                  key={client.id}
+                  onClick={() => onSwitchClient(client.id)}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 group ${
+                    isCurrentActive
+                      ? 'border-amber-400 bg-amber-50/30 shadow-xs'
+                      : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50/60'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 font-bold flex items-center justify-center text-xs shadow-2xs">
+                          {client.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900 group-hover:text-amber-600 transition-colors">
+                            {client.name}
+                          </h4>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {client.slug}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900 group-hover:text-amber-600 transition-colors">
-                          {client.name}
-                        </h4>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {client.slug}
+                      {isCurrentActive && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                          Active Scope
                         </span>
-                      </div>
+                      )}
                     </div>
-                    {isCurrentActive && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                        Active Scope
+
+                    <div className="mt-2.5">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium border ${industryBadge.badge}`}
+                      >
+                        {client.industry}
                       </span>
-                    )}
+                    </div>
                   </div>
 
-                  <div className="mt-2.5">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium border ${industryBadge.badge}`}
-                    >
-                      {client.industry}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-mono">
+                    <span>{clientSites.length} Sites</span>
+                    <span>{clientTasks.length} Tasks</span>
+                    <span className="text-emerald-600 font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      MCP Online
                     </span>
                   </div>
                 </div>
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-mono">
-                  <span>{clientSites.length} Sites</span>
-                  <span>{clientTasks.length} Tasks</span>
-                  <span className="text-emerald-600 font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    MCP Online
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-300 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto">
+              <Users className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-slate-800">No Client Organizations Registered</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Onboard your first WordPress client to start monitoring health, running autonomous tasks, and managing permissions.
+              </p>
+            </div>
+            <Button variant="primary" size="sm" onClick={onOpenAddClientModal} icon={Plus}>
+              Onboard First Client
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* 5. Site Health & AI Activity (Answers: Are any sites unhealthy? What is AI doing?) */}
@@ -420,30 +457,43 @@ export const CommandCenterDashboard: React.FC<CommandCenterDashboardProps> = ({
             </Button>
           </div>
 
-          <div className="space-y-2">
-            {sites.slice(0, 4).map((site) => (
-              <div
-                key={site.id}
-                className="p-3 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-3 text-xs"
-              >
-                <div className="space-y-0.5 min-w-0">
-                  <div className="font-bold text-slate-800 truncate">{site.siteName}</div>
-                  <div className="text-[11px] text-slate-400 font-mono truncate">
-                    {site.websiteUrl}
+          {sites.length > 0 ? (
+            <div className="space-y-2">
+              {sites.slice(0, 4).map((site) => (
+                <div
+                  key={site.id}
+                  className="p-3 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="font-bold text-slate-800 truncate">{site.siteName}</div>
+                    <div className="text-[11px] text-slate-400 font-mono truncate">
+                      {site.websiteUrl}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-semibold">
+                      {site.seoPlugin || 'RANK_MATH'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                      {site.mcpStatus}
+                    </span>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-semibold">
-                    {site.seoPlugin || 'RANK_MATH'}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                    {site.mcpStatus}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-300 space-y-2">
+              <Globe className="w-6 h-6 text-slate-400 mx-auto" />
+              <div className="text-xs font-bold text-slate-700">No WordPress Sites Connected</div>
+              <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                Connect a self-hosted WordPress site or WP Engine instance via the Fleet tab.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => onNavigateToTab('sites')} icon={Plus}>
+                Add WordPress Site
+              </Button>
+            </div>
+          )}
         </Card>
 
         {/* AI & Operations Chronological Activity */}

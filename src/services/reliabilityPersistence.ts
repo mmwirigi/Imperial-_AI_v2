@@ -65,7 +65,7 @@ export class ReliabilityPersistenceManager {
       const raw = localStorage.getItem(STORAGE_KEYS.TASKS);
       if (!raw) return defaultTasks;
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
       return defaultTasks;

@@ -204,23 +204,63 @@ export function App() {
   const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // Core Repositories State
-  const [sites, setSites] = useState<Site[]>(initialDemoSites);
-  const [tasks, setTasks] = useState<Task[]>(initialDemoTasks);
-  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(initialAuditEvents);
+  // Helper to safely load from LocalStorage with fallback
+  const getStoredState = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+      if (!raw) return defaultValue;
+      return JSON.parse(raw);
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  // Core Repositories State (Clean Slate by default for custom input)
+  const [sites, setSites] = useState<Site[]>(() =>
+    getStoredState<Site[]>('imperial_v2_sites', [])
+  );
+  const [tasks, setTasks] = useState<Task[]>(() =>
+    getStoredState<Task[]>('imperial_v2_tasks', [])
+  );
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(() =>
+    getStoredState<AuditEvent[]>('imperial_v2_audit', [])
+  );
   const [models, setModels] = useState<AIModel[]>(availableAiModels);
   const [selectedModelId, setSelectedModelId] = useState<string>('google/gemini-2.0-flash-exp:free');
   const [conversationModelOverrides, setConversationModelOverrides] = useState<Record<string, string>>({});
 
   // Phase 7: Production WordPress Operations & Autonomous Task Execution
   const [productionTasks, setProductionTasks] = useState<ProductionTask[]>(() =>
-    persistenceManager.loadTasks(initialProductionTasks)
+    getStoredState<ProductionTask[]>('imperial_v2_production_tasks', [])
   );
-  const [backupCheckpoints, setBackupCheckpoints] = useState<BackupCheckpoint[]>(initialBackupCheckpoints);
-  const [bulkBatches, setBulkBatches] = useState<BulkOperationBatch[]>(initialBulkBatches);
-  const [advancedApprovals, setAdvancedApprovals] = useState<AdvancedApprovalItem[]>(initialAdvancedApprovals);
-  const [securityEvents, setSecurityEvents] = useState<SecurityEventItem[]>(initialSecurityEvents);
-  const [productionMetrics, setProductionMetrics] = useState<ProductionMonitorMetrics>(initialProductionMonitor);
+  const [backupCheckpoints, setBackupCheckpoints] = useState<BackupCheckpoint[]>(() =>
+    getStoredState<BackupCheckpoint[]>('imperial_v2_checkpoints', [])
+  );
+  const [bulkBatches, setBulkBatches] = useState<BulkOperationBatch[]>(() =>
+    getStoredState<BulkOperationBatch[]>('imperial_v2_batches', [])
+  );
+  const [advancedApprovals, setAdvancedApprovals] = useState<AdvancedApprovalItem[]>(() =>
+    getStoredState<AdvancedApprovalItem[]>('imperial_v2_approvals', [])
+  );
+  const [securityEvents, setSecurityEvents] = useState<SecurityEventItem[]>(() =>
+    getStoredState<SecurityEventItem[]>('imperial_v2_security_events', [])
+  );
+  const [productionMetrics, setProductionMetrics] = useState<ProductionMonitorMetrics>({
+    mcpLatencyMs: 0,
+    mcpUptimePercent: 100,
+    mcpLastPing: 'Never',
+    siteResponseTimeMs: 0,
+    sslValid: true,
+    activeDiscoveredTools: 0,
+    tasksQueuedCount: 0,
+    tasksRunningCount: 0,
+    tasksFailedCount: 0,
+    verificationsFailedCount: 0,
+    capabilityDriftDetected: false,
+    securityInterceptionsCount: 0,
+    authHealthy: true,
+    tokenExpiresAt: 'N/A',
+  });
   const [circuitBreakers, setCircuitBreakers] = useState<AgentCircuitBreakers>(initialCircuitBreakers);
   const [agentMode, setAgentMode] = useState<AgentExecutionMode>('EXECUTE');
   const [testCases, setTestCases] = useState<ProductionTestCase[]>(initialProductionTests);
@@ -236,33 +276,47 @@ export function App() {
   }, [productionTasks]);
 
   // Phase 8: Production Reliability, Recovery & Self-Healing State
-  const [reconciledTasks, setReconciledTasks] = useState<ReconciledTaskRecord[]>(initialReconciledTasks);
+  const [reconciledTasks, setReconciledTasks] = useState<ReconciledTaskRecord[]>(() =>
+    getStoredState<ReconciledTaskRecord[]>('imperial_v2_reconciled', [])
+  );
   const [deadLetterItems, setDeadLetterItems] = useState<DeadLetterItem[]>(() =>
-    persistenceManager.loadDeadLetterItems(initialDeadLetterItems)
+    getStoredState<DeadLetterItem[]>('imperial_v2_dead_letter', [])
   );
   const [resourceLocks, setResourceLocks] = useState<ResourceLock[]>(() =>
-    persistenceManager.loadResourceLocks(initialResourceLocks)
+    getStoredState<ResourceLock[]>('imperial_v2_locks', [])
   );
   const [mcpHealthList, setMcpHealthList] = useState<McpConnectionHealth[]>(initialMcpHealthDetail);
-  const [siteHealthReports, setSiteHealthReports] = useState<SiteHealthReport[]>(initialSiteHealthReports);
+  const [siteHealthReports, setSiteHealthReports] = useState<SiteHealthReport[]>([]);
   const [recoveryCheckpoints, setRecoveryCheckpoints] = useState<TaskRecoveryCheckpoint[]>(() =>
-    persistenceManager.loadRecoveryCheckpoints(initialTaskRecoveryCheckpoints)
+    getStoredState<TaskRecoveryCheckpoint[]>('imperial_v2_recovery_points', [])
   );
   const [reliabilityTests, setReliabilityTests] = useState<ReliabilityTestCase[]>(initialReliabilityTests);
   const [isRunningReliability, setIsRunningReliability] = useState(false);
 
   // Phase 8: Section 2 & 3 - Observability, Incident & Chaos State
-  const [structuredLogs, setStructuredLogs] = useState<StructuredLogEntry[]>(initialStructuredLogs);
+  const [structuredLogs, setStructuredLogs] = useState<StructuredLogEntry[]>(() =>
+    getStoredState<StructuredLogEntry[]>('imperial_v2_logs', [])
+  );
   const [observabilityMetrics, setObservabilityMetrics] = useState<ObservabilityMetrics>(initialObservabilityMetrics);
-  const [anomalies, setAnomalies] = useState<AnomalyEvent[]>(initialAnomalies);
-  const [incidents, setIncidents] = useState<IncidentItem[]>(initialIncidents);
-  const [alerts, setAlerts] = useState<AlertItem[]>(initialAlerts);
-  const [fairQueue, setFairQueue] = useState<FairQueueItem[]>(initialFairQueue);
+  const [anomalies, setAnomalies] = useState<AnomalyEvent[]>(() =>
+    getStoredState<AnomalyEvent[]>('imperial_v2_anomalies', [])
+  );
+  const [incidents, setIncidents] = useState<IncidentItem[]>(() =>
+    getStoredState<IncidentItem[]>('imperial_v2_incidents', [])
+  );
+  const [alerts, setAlerts] = useState<AlertItem[]>(() =>
+    getStoredState<AlertItem[]>('imperial_v2_alerts', [])
+  );
+  const [fairQueue, setFairQueue] = useState<FairQueueItem[]>(() =>
+    getStoredState<FairQueueItem[]>('imperial_v2_fair_queue', [])
+  );
   const [chaosScenarios, setChaosScenarios] = useState<ChaosScenario[]>(initialChaosScenarios);
   const [isRunningChaos, setIsRunningChaos] = useState(false);
 
   // Section 3: Reports, Invariants, Checklist, Integration Workflow
-  const [productionReports, setProductionReports] = useState<ProductionReport[]>(initialProductionReports);
+  const [productionReports, setProductionReports] = useState<ProductionReport[]>(() =>
+    getStoredState<ProductionReport[]>('imperial_v2_reports', [])
+  );
   const [securityInvariants, setSecurityInvariants] = useState<SecurityInvariantItem[]>(initialSecurityInvariants);
   const [readinessChecklist, setReadinessChecklist] = useState<ChecklistItem[]>(initialChecklistItems);
   const [phase8AcceptanceItems, setPhase8AcceptanceItems] = useState<Phase8AcceptanceItem[]>(initialPhase8AcceptanceItems);
@@ -273,23 +327,31 @@ export function App() {
   const [isRunningIntegration, setIsRunningIntegration] = useState(false);
 
   // Phase 9: Multi-Tenant Platform & SaaS Architecture State
-  const [organizations, setOrganizations] = useState<Organization[]>(initialOrganizations);
-  const [clients, setClients] = useState<ClientCompany[]>(initialClientCompanies);
-  const [tenantUsers, setTenantUsers] = useState<TenantUser[]>(initialTenantUsers);
-  const [memberships, setMemberships] = useState<Membership[]>(initialMemberships);
-  const [currentUser, setCurrentUser] = useState<TenantUser>(initialTenantUsers[0]);
+  const [organizations, setOrganizations] = useState<Organization[]>(() =>
+    getStoredState<Organization[]>('imperial_v2_orgs', initialOrganizations)
+  );
+  const [clients, setClients] = useState<ClientCompany[]>(() =>
+    getStoredState<ClientCompany[]>('imperial_v2_clients', [])
+  );
+  const [tenantUsers, setTenantUsers] = useState<TenantUser[]>(() =>
+    getStoredState<TenantUser[]>('imperial_v2_users', initialTenantUsers)
+  );
+  const [memberships, setMemberships] = useState<Membership[]>(() =>
+    getStoredState<Membership[]>('imperial_v2_memberships', initialMemberships)
+  );
+  const [currentUser, setCurrentUser] = useState<TenantUser>(() => tenantUsers[0] || initialTenantUsers[0]);
   const [phase9TestCases, setPhase9TestCases] = useState<Phase9TestCase[]>(initialPhase9TestCases);
   const [isRunningPhase9, setIsRunningPhase9] = useState(false);
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
 
   // Section 2: SaaS Platforms, Baselines, Usage & Onboarding State
   const [saasPlans, setSaasPlans] = useState<SaaSPlan[]>(initialSaasPlans);
-  const [siteBaselines, setSiteBaselines] = useState<SiteCapabilityBaseline[]>(initialSiteBaselines);
-  const [capabilityDrifts, setCapabilityDrifts] = useState<CapabilityChangeEvent[]>(initialCapabilityChangeEvents);
-  const [onboardingSessions, setOnboardingSessions] = useState<ClientOnboardingSession[]>(initialClientOnboardingSessions);
-  const [usageSummaries, setUsageSummaries] = useState<Record<string, TenantUsageSummary>>(initialTenantUsageSummaries);
-  const [clientActivityLogs, setClientActivityLogs] = useState<ClientActivityLogItem[]>(initialClientActivityLogs);
-  const [platformAdminAudits, setPlatformAdminAudits] = useState<PlatformAdminAuditItem[]>(initialPlatformAdminAudits);
+  const [siteBaselines, setSiteBaselines] = useState<SiteCapabilityBaseline[]>([]);
+  const [capabilityDrifts, setCapabilityDrifts] = useState<CapabilityChangeEvent[]>([]);
+  const [onboardingSessions, setOnboardingSessions] = useState<ClientOnboardingSession[]>([]);
+  const [usageSummaries, setUsageSummaries] = useState<Record<string, TenantUsageSummary>>({});
+  const [clientActivityLogs, setClientActivityLogs] = useState<ClientActivityLogItem[]>([]);
+  const [platformAdminAudits, setPlatformAdminAudits] = useState<PlatformAdminAuditItem[]>([]);
   const [checklistItems, setChecklistItems] = useState<Phase9AcceptanceChecklistItem[]>(initialPhase9AcceptanceChecklist);
 
   // Authoritative Context Resolution (Tenant -> Client -> Site -> Connection)
@@ -305,21 +367,29 @@ export function App() {
   }, [currentUser, organizations, clients, sites, memberships]);
 
   // OpenRouter Credentials & Config State
-  const [openRouterConfig, setOpenRouterConfig] = useState<OpenRouterConfig>({
-    apiKey: 'sk-or-v1-imperial-demo-live-key',
-    maskedApiKey: 'sk-or-••••••••••••••••',
-    isConnected: true,
-    selectedDefaultModelId: 'google/gemini-2.0-flash-exp:free',
-    lastUpdated: 'Today, 08:30 EAT',
-  });
+  const [openRouterConfig, setOpenRouterConfig] = useState<OpenRouterConfig>(() =>
+    getStoredState<OpenRouterConfig>('imperial_v2_openrouter', {
+      apiKey: '',
+      maskedApiKey: '',
+      isConnected: false,
+      selectedDefaultModelId: 'google/gemini-2.0-flash-exp:free',
+      lastUpdated: 'Not configured',
+    })
+  );
 
   // Phase 3: Remote MCP Engine State
-  const [mcpServers, setMcpServers] = useState<MCPServer[]>(initialMcpServers);
-  const [mcpTools, setMcpTools] = useState<Record<string, McpTool[]>>(initialMcpTools);
+  const [mcpServers, setMcpServers] = useState<MCPServer[]>(() =>
+    getStoredState<MCPServer[]>('imperial_v2_mcp_servers', [])
+  );
+  const [mcpTools, setMcpTools] = useState<Record<string, McpTool[]>>(() =>
+    getStoredState<Record<string, McpTool[]>>('imperial_v2_mcp_tools', {})
+  );
   const [mcpBearerTokens, setMcpBearerTokens] = useState<Record<string, string>>({});
 
   // Active Site Context & Strict Isolation
-  const [activeSiteId, setActiveSiteId] = useState<string>(initialDemoSites[0]?.id || '');
+  const [activeSiteId, setActiveSiteId] = useState<string>(() =>
+    getStoredState<string>('imperial_v2_active_site_id', '')
+  );
   const activeSite = sites.find((s) => s.id === activeSiteId) || sites[0] || null;
 
   // Modals
@@ -333,41 +403,136 @@ export function App() {
   const streamingAbortRef = useRef<boolean>(false);
 
   // Site-Isolated Chat Messages State (Record<siteId, ChatMessage[]>)
-  const [messagesBySite, setMessagesBySite] = useState<Record<string, ChatMessage[]>>({
-    'demo-site-1': [
-      {
-        id: 'msg-init-1',
-        conversationId: 'conv-demo-site-1',
-        siteId: 'demo-site-1',
-        sender: 'ASSISTANT',
-        content: `Active Site Context locked: Juba Raha Paradise Hotel.\n\nReady to audit WordPress metadata, review sitemaps, or inspect room booking schemas. All tool operations execute strictly against this site's isolated scope.`,
-        timestamp: '08:30 EAT',
-        modelName: 'Gemini 2.0 Flash Experimental (Free)',
-      },
-    ],
-    'demo-site-2': [
-      {
-        id: 'msg-init-2',
-        conversationId: 'conv-demo-site-2',
-        siteId: 'demo-site-2',
-        sender: 'ASSISTANT',
-        content: `Active Site Context locked: Debrazz Security Systems.\n\nReady for CCTV catalog verification and Yoast SEO schema checks.`,
-        timestamp: 'Yesterday',
-        modelName: 'Gemini 2.0 Flash Experimental (Free)',
-      },
-    ],
-    'demo-site-3': [
-      {
-        id: 'msg-init-3',
-        conversationId: 'conv-demo-site-3',
-        siteId: 'demo-site-3',
-        sender: 'ASSISTANT',
-        content: `Active Site Context locked: Anthony Gatune Foundation.\n\nCharity donor transparency and scholarship publication buffer active.`,
-        timestamp: '11:45 EAT',
-        modelName: 'Gemini 2.0 Flash Experimental (Free)',
-      },
-    ],
-  });
+  const [messagesBySite, setMessagesBySite] = useState<Record<string, ChatMessage[]>>(() =>
+    getStoredState<Record<string, ChatMessage[]>>('imperial_v2_messages_by_site', {})
+  );
+
+  // Durable Storage Persistence Hooks
+  useEffect(() => {
+    try {
+      localStorage.setItem('imperial_v2_sites', JSON.stringify(sites));
+      if (sites.length > 0 && (!activeSiteId || !sites.some((s) => s.id === activeSiteId))) {
+        setActiveSiteId(sites[0].id);
+      }
+    } catch {}
+  }, [sites, activeSiteId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('imperial_v2_clients', JSON.stringify(clients));
+    } catch {}
+  }, [clients]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('imperial_v2_production_tasks', JSON.stringify(productionTasks));
+    } catch {}
+  }, [productionTasks]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('imperial_v2_approvals', JSON.stringify(advancedApprovals));
+    } catch {}
+  }, [advancedApprovals]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('imperial_v2_audit', JSON.stringify(auditEvents));
+    } catch {}
+  }, [auditEvents]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('imperial_v2_security_events', JSON.stringify(securityEvents));
+    } catch {}
+  }, [securityEvents]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('imperial_v2_openrouter', JSON.stringify(openRouterConfig));
+    } catch {}
+  }, [openRouterConfig]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('imperial_v2_messages_by_site', JSON.stringify(messagesBySite));
+    } catch {}
+  }, [messagesBySite]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('imperial_v2_active_site_id', activeSiteId);
+    } catch {}
+  }, [activeSiteId]);
+
+  // Clean Slate and Demo Switcher Handlers
+  const handleResetToCleanApp = () => {
+    if (typeof window !== 'undefined') {
+      const keys = [
+        'imperial_v2_sites',
+        'imperial_v2_clients',
+        'imperial_v2_tasks',
+        'imperial_v2_production_tasks',
+        'imperial_v2_approvals',
+        'imperial_v2_audit',
+        'imperial_v2_security_events',
+        'imperial_v2_checkpoints',
+        'imperial_v2_batches',
+        'imperial_v2_logs',
+        'imperial_v2_incidents',
+        'imperial_v2_anomalies',
+        'imperial_v2_alerts',
+        'imperial_v2_fair_queue',
+        'imperial_v2_messages_by_site',
+        'imperial_v2_active_site_id',
+        'imperial_v2_mcp_servers',
+        'imperial_v2_mcp_tools',
+        'imperial_phase8_production_tasks_v1',
+        'imperial_phase8_dead_letter_v1',
+        'imperial_phase8_resource_locks_v1',
+        'imperial_phase8_recovery_points_v1',
+      ];
+      keys.forEach((k) => localStorage.removeItem(k));
+    }
+    setClients([]);
+    setSites([]);
+    setTasks([]);
+    setProductionTasks([]);
+    setAdvancedApprovals([]);
+    setAuditEvents([]);
+    setSecurityEvents([]);
+    setBackupCheckpoints([]);
+    setBulkBatches([]);
+    setStructuredLogs([]);
+    setIncidents([]);
+    setAnomalies([]);
+    setAlerts([]);
+    setFairQueue([]);
+    setMessagesBySite({});
+    setMcpServers([]);
+    setMcpTools({});
+    setActiveSiteId('');
+    setSelectedClientForDetail(null);
+    setSelectedSiteForDetail(null);
+  };
+
+  const handleSeedDemoShowcase = () => {
+    setClients(initialClientCompanies);
+    setSites(initialDemoSites);
+    setTasks(initialDemoTasks);
+    setProductionTasks(initialProductionTasks);
+    setAdvancedApprovals(initialAdvancedApprovals);
+    setAuditEvents(initialAuditEvents);
+    setSecurityEvents(initialSecurityEvents);
+    setBackupCheckpoints(initialBackupCheckpoints);
+    setBulkBatches(initialBulkBatches);
+    setStructuredLogs(initialStructuredLogs);
+    setIncidents(initialIncidents);
+    setAnomalies(initialAnomalies);
+    setAlerts(initialAlerts);
+    setFairQueue(initialFairQueue);
+    setActiveSiteId(initialDemoSites[0]?.id || '');
+  };
 
   const [approvalModalData, setApprovalModalData] = useState<{
     isOpen: boolean;
@@ -656,10 +821,37 @@ export function App() {
   };
 
   // Handlers for Chat & Progressive Streaming
-  const currentSiteMessages = activeSite ? messagesBySite[activeSite.id] || [] : [];
+  const currentSiteMessages = activeSite
+    ? messagesBySite[activeSite.id] || []
+    : messagesBySite['global'] || [];
 
   const handleSendMessage = async (text: string) => {
-    if (!activeSite || isStreaming) return;
+    if (isStreaming) return;
+
+    if (!activeSite) {
+      const userMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        conversationId: 'conv-global',
+        siteId: 'global',
+        sender: 'USER',
+        content: text,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      const assistantMsg: ChatMessage = {
+        id: `msg-${Date.now() + 1}`,
+        conversationId: 'conv-global',
+        siteId: 'global',
+        sender: 'ASSISTANT',
+        content: `Welcome to Imperial AI! You are currently operating in global workspace mode with no WordPress site selected.\n\nTo run site-isolated SEO audits, plugin inspections, or automated task workflows, please onboard your first client and connect a WordPress site using the "Clients" or "Fleet" tabs.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        modelName: activeModel.name,
+      };
+      setMessagesBySite((prev) => ({
+        ...prev,
+        global: [...(prev.global || []), userMsg, assistantMsg],
+      }));
+      return;
+    }
 
     if (!openRouterConfig.isConnected) {
       setCurrentTab('settings');
@@ -3305,6 +3497,8 @@ export function App() {
             onReconnectMcpServer={handleConnectMcpServer}
             onDisconnectMcpServer={handleDisconnectMcpServer}
             onDeleteMcpServer={handleDeleteMcpServer}
+            onResetAllData={handleResetToCleanApp}
+            onSeedDemoData={handleSeedDemoShowcase}
           />
         );
       case 'integrations':

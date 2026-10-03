@@ -562,6 +562,31 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({
             </div>
           );
         })}
+
+        {filteredSites.length === 0 && (
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-12 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mx-auto">
+              <Globe className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-neutral-100">
+                {sites.length === 0 ? 'No WordPress Sites Connected' : 'No Sites Found'}
+              </h3>
+              <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+                {sites.length === 0
+                  ? 'Connect your first WordPress site to begin autonomous monitoring, MCP tool execution, and isolated management.'
+                  : 'No WordPress sites matched your search filter.'}
+              </p>
+            </div>
+            <button
+              onClick={openAddModal}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add WordPress Site</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* MCP Connection Modal (Phase 3 Engine) */}

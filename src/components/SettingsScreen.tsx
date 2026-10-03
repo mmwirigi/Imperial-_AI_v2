@@ -43,6 +43,9 @@ interface SettingsScreenProps {
   onReconnectMcpServer: (server: MCPServer) => void;
   onDisconnectMcpServer: (siteId: string, serverId: string) => void;
   onDeleteMcpServer: (siteId: string, serverId: string) => void;
+  // Brand New App & Demo Management Props
+  onResetAllData?: () => void;
+  onSeedDemoData?: () => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
@@ -61,6 +64,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onReconnectMcpServer,
   onDisconnectMcpServer,
   onDeleteMcpServer,
+  onResetAllData,
+  onSeedDemoData,
 }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
@@ -394,7 +399,51 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </div>
       </div>
 
-      {/* 4. Delete Protection Confirmation Dialog (Requirement 26) */}
+      {/* 4. Production Environment & Data Slate */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-4">
+        <div className="flex items-center gap-2 text-amber-400 font-mono text-xs font-bold uppercase tracking-wider">
+          <Layers className="w-4 h-4" />
+          <span>Environment &amp; Workspace Data Slate</span>
+        </div>
+
+        <p className="text-xs text-neutral-400">
+          Imperial AI operates as a clean slate for your actual client organizations and WordPress fleet. All added clients, sites, and tasks persist durably in your local browser storage.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          {onResetAllData && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Reset all clients, sites, and tasks back to a clean empty state?')) {
+                  onResetAllData();
+                }
+              }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-750 text-rose-400 hover:text-rose-300 border border-neutral-750 font-bold text-xs transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Reset to Clean Slate (Wipe All)</span>
+            </button>
+          )}
+
+          {onSeedDemoData && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Populate showcase demo clients and WordPress test sites?')) {
+                  onSeedDemoData();
+                }
+              }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold text-xs transition-colors"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Load Showcase Demo Data</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 5. Delete Protection Confirmation Dialog (Requirement 26) */}
       {serverToDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">

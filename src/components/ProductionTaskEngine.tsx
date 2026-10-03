@@ -407,49 +407,59 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
           </div>
 
           <div className="space-y-2">
-            {filteredTasks.map((t) => {
-              const isSelected = current?.id === t.id;
-              return (
-                <div
-                  key={t.id}
-                  onClick={() => setSelectedTask(t)}
-                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 ${
-                    isSelected
-                      ? 'bg-amber-50/40 border-amber-300 ring-2 ring-amber-300/20 shadow-2xs'
-                      : 'bg-white hover:bg-slate-50 border-slate-200/90'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
-                      {t.domain}
-                    </span>
-                    <Badge
-                      variant={
-                        t.overallStatus === 'COMPLETED'
-                          ? 'success'
-                          : t.overallStatus === 'RUNNING'
-                          ? 'warning'
-                          : t.overallStatus === 'FAILED'
-                          ? 'error'
-                          : 'neutral'
-                      }
-                      size="sm"
-                    >
-                      {t.overallStatus}
-                    </Badge>
+            {filteredTasks.length > 0 ? (
+              filteredTasks.map((t) => {
+                const isSelected = current?.id === t.id;
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => setSelectedTask(t)}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 ${
+                      isSelected
+                        ? 'bg-amber-50/40 border-amber-300 ring-2 ring-amber-300/20 shadow-2xs'
+                        : 'bg-white hover:bg-slate-50 border-slate-200/90'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
+                        {t.domain}
+                      </span>
+                      <Badge
+                        variant={
+                          t.overallStatus === 'COMPLETED'
+                            ? 'success'
+                            : t.overallStatus === 'RUNNING'
+                            ? 'warning'
+                            : t.overallStatus === 'FAILED'
+                            ? 'error'
+                            : 'neutral'
+                        }
+                        size="sm"
+                      >
+                        {t.overallStatus}
+                      </Badge>
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-900 line-clamp-2">
+                      {t.title}
+                    </h3>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 font-mono">
+                      <span className="truncate max-w-[120px]">{t.siteName}</span>
+                      <span className="text-amber-700 font-bold">
+                        {t.steps.filter((s) => s.state === 'COMPLETED').length}/{t.steps.length} Steps
+                      </span>
+                    </div>
                   </div>
-                  <h3 className="text-xs font-bold text-slate-900 line-clamp-2">
-                    {t.title}
-                  </h3>
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 font-mono">
-                    <span className="truncate max-w-[120px]">{t.siteName}</span>
-                    <span className="text-amber-700 font-bold">
-                      {t.steps.filter((s) => s.state === 'COMPLETED').length}/{t.steps.length} Steps
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 text-center space-y-2">
+                <CheckSquare className="w-5 h-5 text-amber-500 mx-auto" />
+                <div className="text-xs font-bold text-slate-800">No Tasks in Queue</div>
+                <p className="text-[11px] text-slate-500">
+                  Click "New Operational Task" above to convert instructions into structured steps.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
