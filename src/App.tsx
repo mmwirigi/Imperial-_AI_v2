@@ -137,6 +137,21 @@ import { Phase15WhiteLabelScreen } from './components/Phase15WhiteLabelScreen';
 import { Phase16GlobalScaleScreen } from './components/Phase16GlobalScaleScreen';
 import { MasterPhases10To16SuiteModal } from './components/MasterPhases10To16SuiteModal';
 import { DataSyncStatusModal } from './components/DataSyncStatusModal';
+import { AppHeader } from './components/AppHeader';
+import { AppSidebar } from './components/AppSidebar';
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { MobileMoreSheet } from './components/MobileMoreSheet';
+import { CommandCenterDashboard } from './components/CommandCenterDashboard';
+import { ClientsDirectoryScreen } from './components/ClientsDirectoryScreen';
+import { ClientDetailView } from './components/ClientDetailView';
+import { SiteDetailView } from './components/SiteDetailView';
+import { OperationsCenterScreen } from './components/OperationsCenterScreen';
+import { MonitoringCenterScreen } from './components/MonitoringCenterScreen';
+import { AnalyticsCenterScreen } from './components/AnalyticsCenterScreen';
+import { SecurityCenterScreen } from './components/SecurityCenterScreen';
+import { AuditCenterScreen } from './components/AuditCenterScreen';
+import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { AddClientWizardModal } from './components/AddClientWizardModal';
 import { syncManager } from './services/dataSyncService';
 import { persistenceManager } from './services/reliabilityPersistence';
 import { ReconciliationEngine } from './services/reconciliationEngine';
@@ -150,30 +165,44 @@ import { Phase9TestSuite } from './services/phase9TestSuite';
 
 export function App() {
   const [currentTab, setCurrentTab] = useState<
+    | 'overview'
     | 'home'
+    | 'clients'
     | 'sites'
     | 'tasks'
     | 'approvals'
+    | 'operations'
+    | 'integrations'
+    | 'analytics'
+    | 'monitoring'
+    | 'security'
+    | 'audit'
+    | 'settings'
+    | 'assistant'
+    | 'chat'
     | 'reliability'
     | 'observability'
     | 'bulk'
-    | 'chat'
-    | 'monitoring'
     | 'testing'
-    | 'security'
-    | 'settings'
     | 'tenants'
-    | 'integrations'
     | 'agents'
     | 'knowledge'
     | 'predictive'
     | 'governance'
     | 'whitelabel'
     | 'globalscale'
-  >('home');
+  >('overview');
   const [viewMode, setViewMode] = useState<'mobile' | 'desktop' | 'code'>('desktop');
   const [isMasterCertificationOpen, setIsMasterCertificationOpen] = useState(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+
+  // Light-Theme Shell Navigation & Detail Modals State
+  const [selectedClientForDetail, setSelectedClientForDetail] = useState<ClientCompany | null>(null);
+  const [selectedSiteForDetail, setSelectedSiteForDetail] = useState<Site | null>(null);
+  const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+  const [isAddClientWizardOpen, setIsAddClientWizardOpen] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Core Repositories State
   const [sites, setSites] = useState<Site[]>(initialDemoSites);
@@ -2941,26 +2970,67 @@ export function App() {
   // Helper function: Render active tab content
   const renderTabContent = () => {
     switch (currentTab) {
+      case 'overview':
       case 'home':
         return (
-          <OperationsDashboard
-            activeSite={activeSite}
+          <CommandCenterDashboard
+            clients={clients}
             sites={sites}
             tasks={productionTasks}
-            checkpoints={backupCheckpoints}
-            bulkBatches={bulkBatches}
-            pendingApprovals={advancedApprovals}
+            approvals={advancedApprovals}
             securityEvents={securityEvents}
-            metrics={productionMetrics}
-            agentMode={agentMode}
-            onNavigateTab={(t) => setCurrentTab(t as any)}
-            onOpenTaskDetails={(t) => setSelectedTaskForDetail(t)}
-            onOpenReportModal={handleOpenReportForTask}
-            onLaunchNewTask={() => setCurrentTab('tasks')}
-            onLaunchBulkModal={() => setCurrentTab('bulk')}
-            onTriggerRollback={handleTriggerRollback}
-            onOpenAgentControls={() => setIsAgentControlsOpen(true)}
-            onOpenSiteSelector={() => setIsSiteSelectorOpen(true)}
+            auditEvents={auditEvents}
+            activeTenantContext={activeTenantContext}
+            onNavigateToTab={(tab, meta) => {
+              if (tab === 'clients' && meta?.client) {
+                setSelectedClientForDetail(meta.client);
+              }
+              if (tab === 'sites' && meta?.site) {
+                setSelectedSiteForDetail(meta.site);
+              }
+              setCurrentTab(tab as any);
+            }}
+            onSwitchClient={handleSwitchClientContext}
+            onOpenAddClientModal={() => setIsAddClientWizardOpen(true)}
+            onOpenApprovalModal={(_approvalId) => setCurrentTab('approvals')}
+            onOpenTaskDetail={(task) => setSelectedTaskForDetail(task)}
+            onRefreshData={handleRefreshTelemetry}
+          />
+        );
+      case 'clients':
+        return selectedClientForDetail ? (
+          <ClientDetailView
+            client={selectedClientForDetail}
+            sites={sites}
+            tasks={productionTasks}
+            approvals={advancedApprovals}
+            securityEvents={securityEvents}
+            auditEvents={auditEvents}
+            onBack={() => setSelectedClientForDetail(null)}
+            onSelectSite={(siteId) => {
+              const site = sites.find((s) => s.id === siteId);
+              if (site) {
+                setSelectedSiteForDetail(site);
+                setCurrentTab('sites');
+              }
+            }}
+            onSetAsActiveScope={(clientId) => {
+              handleSwitchClientContext(clientId);
+            }}
+            isActiveScope={activeTenantContext?.client.id === selectedClientForDetail.id}
+          />
+        ) : (
+          <ClientsDirectoryScreen
+            clients={clients}
+            sites={sites}
+            tasks={productionTasks}
+            approvals={advancedApprovals}
+            activeClientId={activeTenantContext?.client.id}
+            onSelectClient={(clientId) => {
+              handleSwitchClientContext(clientId);
+            }}
+            onOpenAddClientModal={() => setIsAddClientWizardOpen(true)}
+            onOpenClientDetail={(client) => setSelectedClientForDetail(client)}
           />
         );
       case 'observability':
@@ -3063,41 +3133,47 @@ export function App() {
             onNewBatchScan={handleNewBatchScan}
           />
         );
+      case 'operations':
+        return (
+          <OperationsCenterScreen
+            batches={bulkBatches}
+            tasks={productionTasks}
+            sites={sites}
+            auditEvents={auditEvents}
+            activeSite={activeSite}
+            onExecuteBatch={handleExecuteBulkBatch}
+            onRollbackBatch={handleRollbackBulkBatch}
+          />
+        );
+      case 'analytics':
+        return (
+          <AnalyticsCenterScreen
+            tasks={productionTasks}
+            sites={sites}
+            clients={clients}
+          />
+        );
       case 'security':
         return (
-          <SecurityEventsView
-            events={securityEvents}
-            activeSite={activeSite}
-            onResolveEvent={handleResolveSecurityEvent}
-            onClearResolved={handleClearResolvedSecurity}
+          <SecurityCenterScreen
+            securityEvents={securityEvents}
+          />
+        );
+      case 'audit':
+        return (
+          <AuditCenterScreen
+            auditEvents={auditEvents}
           />
         );
       case 'monitoring':
         return (
-          <ProductionMonitoring
-            metrics={productionMetrics}
+          <MonitoringCenterScreen
+            mcpHealthList={mcpHealthList}
+            siteHealthReports={siteHealthReports}
+            deadLetterItems={deadLetterItems}
             sites={sites}
-            mcpServers={mcpServers}
             tasks={productionTasks}
             securityEvents={securityEvents}
-            onRefreshTelemetry={handleRefreshTelemetry}
-            onClearDriftAlert={handleClearDriftAlert}
-            onSimulateMcpStatus={(st) => {
-              if (st === 'authentication_expired') {
-                const secEvt: SecurityEventItem = {
-                  id: `sec-${Date.now()}`,
-                  timestamp: new Date().toLocaleTimeString(),
-                  eventType: 'AUTHENTICATION_FAILURE',
-                  siteId: activeSite?.id || 'demo-site-1',
-                  siteName: activeSite?.siteName || 'Juba Raha Paradise Hotel',
-                  clientId: 'client-mcp',
-                  details: 'Simulated MCP Bearer token expiration: 401 Unauthorized during tool dispatch.',
-                  severity: 'HIGH',
-                  resolved: false,
-                };
-                setSecurityEvents((prev) => [secEvt, ...prev]);
-              }
-            }}
           />
         );
       case 'testing':
@@ -3129,7 +3205,19 @@ export function App() {
           />
         );
       case 'sites':
-        return (
+        return selectedSiteForDetail ? (
+          <SiteDetailView
+            site={selectedSiteForDetail}
+            tasks={productionTasks}
+            approvals={advancedApprovals}
+            auditEvents={auditEvents}
+            onBack={() => setSelectedSiteForDetail(null)}
+            onSetAsActiveSite={(siteId) => {
+              setActiveSiteId(siteId);
+            }}
+            isActiveSite={activeSite?.id === selectedSiteForDetail.id}
+          />
+        ) : (
           <SitesScreen
             sites={sites}
             mcpServers={mcpServers}
@@ -3140,7 +3228,7 @@ export function App() {
             onDeleteSite={handleDeleteSite}
             onSelectSiteForChat={(site) => {
               setActiveSiteId(site.id);
-              setCurrentTab('chat');
+              setCurrentTab('assistant');
             }}
             onSaveMcpServer={handleSaveMcpServer}
             onTestMcpConnection={handleTestMcpConnection}
@@ -3149,6 +3237,7 @@ export function App() {
             onRefreshMcpTools={handleRefreshMcpTools}
           />
         );
+      case 'assistant':
       case 'chat':
         return (
           <ChatScreen
@@ -3285,111 +3374,168 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans selection:bg-amber-500/20 selection:text-amber-300">
-      {/* Top Bar Navigation */}
-      <TopBar
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex font-sans selection:bg-amber-500/20 selection:text-amber-900">
+      {/* Left Sidebar (Desktop) */}
+      <AppSidebar
         currentTab={currentTab}
-        activeSite={activeSite}
+        onSelectTab={(tab) => {
+          setSelectedClientForDetail(null);
+          setSelectedSiteForDetail(null);
+          setCurrentTab(tab as any);
+        }}
         activeTenantContext={activeTenantContext}
-        onOpenSiteSelector={() => setIsSiteSelectorOpen(true)}
-        onOpenTenantContextModal={() => setIsTenantModalOpen(true)}
-        onOpenMasterCertification={() => setIsMasterCertificationOpen(true)}
-        onOpenSyncModal={() => setIsSyncModalOpen(true)}
-        viewMode={viewMode}
-        onSetViewMode={setViewMode}
+        activeTasksBadgeCount={productionTasks.filter((t) => t.overallStatus === 'AWAITING_APPROVAL' || t.overallStatus === 'RUNNING').length}
+        pendingApprovalsBadgeCount={advancedApprovals.filter((a) => a.status === 'PENDING').length}
+        securityEventsBadgeCount={securityEvents.filter((e) => !e.resolved).length}
+        reliabilityBadgeCount={deadLetterItems.filter((i) => i.status === 'PENDING_REVIEW').length}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 overflow-hidden">
-        {viewMode === 'code' ? (
-          /* Kotlin Codebase & Architecture Explorer */
-          <div className="w-full flex-1 overflow-y-auto">
-            <CodeExplorer />
-          </div>
-        ) : viewMode === 'mobile' ? (
-          /* Android Device Frame Simulator (Pixel 8) */
-          <div className="w-full max-w-[420px] h-[820px] bg-neutral-950 rounded-[44px] p-3 shadow-2xl border-4 border-neutral-800 flex flex-col relative overflow-hidden ring-1 ring-neutral-700/50">
-            {/* Phone Bezel Speaker / Camera Pill */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-5 bg-neutral-900 rounded-full z-30 flex items-center justify-center">
-              <div className="w-2.5 h-2.5 rounded-full bg-neutral-950 border border-neutral-800" />
+      {/* Main App Column */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Top Header */}
+        <AppHeader
+          activeTenantContext={activeTenantContext}
+          activeSite={activeSite}
+          onOpenTenantSelector={() => setIsTenantModalOpen(true)}
+          onOpenGlobalSearch={() => setIsGlobalSearchOpen(true)}
+          onOpenSyncModal={() => setIsSyncModalOpen(true)}
+          onOpenMasterCertification={() => setIsMasterCertificationOpen(true)}
+          onOpenNotifications={() => setCurrentTab('security')}
+          unreadNotificationsCount={securityEvents.filter((e) => !e.resolved).length}
+          viewMode={viewMode}
+          onSetViewMode={setViewMode}
+          onToggleMobileMenu={() => setIsMobileMoreOpen(true)}
+          currentAiModelName={activeModel.name}
+        />
+
+        {/* Viewport Content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50">
+          {viewMode === 'code' ? (
+            <div className="max-w-7xl mx-auto h-full">
+              <CodeExplorer />
             </div>
+          ) : viewMode === 'mobile' ? (
+            /* Android Device Frame Simulator (Pixel 8) */
+            <div className="w-full flex justify-center py-4">
+              <div className="w-full max-w-[420px] h-[840px] bg-slate-950 rounded-[44px] p-3 shadow-2xl border-4 border-slate-800 flex flex-col relative overflow-hidden ring-1 ring-slate-700/50">
+                {/* Phone Bezel Speaker / Camera Pill */}
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-900 rounded-full z-30 flex items-center justify-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-950 border border-slate-800" />
+                </div>
 
-            {/* Android Screen Container */}
-            <div className="flex-1 flex flex-col bg-neutral-950 rounded-[34px] overflow-hidden pt-6">
-              {/* Tab Viewports */}
-              <div className="flex-1 overflow-y-auto flex flex-col">
-                {renderTabContent()}
-              </div>
+                {/* Android Screen Container */}
+                <div className="flex-1 flex flex-col bg-slate-50 rounded-[34px] overflow-hidden pt-7 text-slate-900">
+                  <div className="flex-1 overflow-y-auto p-3">
+                    {renderTabContent()}
+                  </div>
 
-              {/* Android Compose M3 Bottom Navigation Bar */}
-              <BottomNav
-                currentTab={currentTab}
-                onSelectTab={(t) => setCurrentTab(t as any)}
-                activeTasksBadgeCount={productionTasks.filter((t) => t.overallStatus === 'AWAITING_APPROVAL' || t.overallStatus === 'RUNNING').length}
-                pendingApprovalsBadgeCount={advancedApprovals.filter((a) => a.status === 'PENDING').length}
-                securityEventsBadgeCount={securityEvents.filter((e) => !e.resolved).length}
-                reliabilityBadgeCount={deadLetterItems.filter((i) => i.status === 'PENDING_REVIEW').length}
-              />
+                  {/* Android Bottom Navigation */}
+                  <MobileBottomNav
+                    currentTab={currentTab}
+                    onSelectTab={(tab) => {
+                      setSelectedClientForDetail(null);
+                      setSelectedSiteForDetail(null);
+                      setCurrentTab(tab as any);
+                    }}
+                    onOpenMoreMenu={() => setIsMobileMoreOpen(true)}
+                    activeTasksBadgeCount={productionTasks.filter((t) => t.overallStatus === 'AWAITING_APPROVAL' || t.overallStatus === 'RUNNING').length}
+                    pendingApprovalsBadgeCount={advancedApprovals.filter((a) => a.status === 'PENDING').length}
+                  />
 
-              {/* Android Home Gesture Pill */}
-              <div className="h-4 w-full flex items-center justify-center bg-neutral-950 shrink-0">
-                <div className="w-24 h-1 bg-neutral-600 rounded-full" />
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Desktop Command Center Console Mode */
-          <div className="w-full flex-1 flex flex-col bg-neutral-950 border border-neutral-800 rounded-xl overflow-hidden shadow-2xl">
-            {/* Top Secondary Breadcrumb Bar */}
-            <div className="bg-neutral-900 border-b border-neutral-800 px-6 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-mono">
-                <span className="text-neutral-400">IMPERIAL AI</span>
-                <span className="text-neutral-600">/</span>
-                <span className="text-amber-400 uppercase font-bold">{currentTab}</span>
-                {activeSite && (
-                  <>
-                    <span className="text-neutral-600">/</span>
-                    <span className="text-neutral-300 font-semibold">{activeSite.siteName}</span>
-                  </>
-                )}
-              </div>
-
-              <div className="flex items-center gap-4 text-xs font-mono">
-                <span className="text-neutral-400">
-                  Fleet: <span className="text-neutral-200">{sites.length} Sites</span>
-                </span>
-                <button
-                  onClick={() => setIsModelCenterOpen(true)}
-                  className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 cursor-pointer transition-colors"
-                >
-                  <span className="text-neutral-400">Model:</span>
-                  <span className="text-amber-400 font-semibold">{activeModel.name}</span>
-                  {activeModel.isFree && (
-                    <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950 px-1 rounded">
-                      FREE
-                    </span>
-                  )}
-                </button>
+                  {/* Android Home Gesture Pill */}
+                  <div className="h-4 w-full flex items-center justify-center bg-white shrink-0">
+                    <div className="w-24 h-1 bg-slate-300 rounded-full" />
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto">
+          ) : (
+            <div className="max-w-7xl mx-auto h-full">
               {renderTabContent()}
             </div>
+          )}
+        </main>
 
-            {/* Desktop Navigation Bar */}
-            <BottomNav
-              currentTab={currentTab}
-              onSelectTab={(t) => setCurrentTab(t as any)}
-              activeTasksBadgeCount={productionTasks.filter((t) => t.overallStatus === 'AWAITING_APPROVAL' || t.overallStatus === 'RUNNING').length}
-              pendingApprovalsBadgeCount={advancedApprovals.filter((a) => a.status === 'PENDING').length}
-              securityEventsBadgeCount={securityEvents.filter((e) => !e.resolved).length}
-              reliabilityBadgeCount={deadLetterItems.filter((i) => i.status === 'PENDING_REVIEW').length}
-            />
-          </div>
+        {/* Mobile Bottom Nav Bar on actual small mobile viewports */}
+        {viewMode !== 'mobile' && (
+          <MobileBottomNav
+            currentTab={currentTab}
+            onSelectTab={(tab) => {
+              setSelectedClientForDetail(null);
+              setSelectedSiteForDetail(null);
+              setCurrentTab(tab as any);
+            }}
+            onOpenMoreMenu={() => setIsMobileMoreOpen(true)}
+            activeTasksBadgeCount={productionTasks.filter((t) => t.overallStatus === 'AWAITING_APPROVAL' || t.overallStatus === 'RUNNING').length}
+            pendingApprovalsBadgeCount={advancedApprovals.filter((a) => a.status === 'PENDING').length}
+          />
         )}
-      </main>
+      </div>
+
+      {/* Global Search Modal */}
+      <GlobalSearchModal
+        isOpen={isGlobalSearchOpen}
+        onClose={() => setIsGlobalSearchOpen(false)}
+        clients={clients}
+        sites={sites}
+        tasks={productionTasks}
+        approvals={advancedApprovals}
+        onNavigateToTab={(tab, meta) => {
+          if (tab === 'clients' && meta?.client) {
+            setSelectedClientForDetail(meta.client);
+          }
+          if (tab === 'sites' && meta?.site) {
+            setSelectedSiteForDetail(meta.site);
+          }
+          setCurrentTab(tab as any);
+        }}
+        onSelectClient={(clientId) => {
+          handleSwitchClientContext(clientId);
+        }}
+        onSelectSite={(siteId) => {
+          setActiveSiteId(siteId);
+        }}
+      />
+
+      {/* Add Client Onboarding Wizard Modal */}
+      <AddClientWizardModal
+        isOpen={isAddClientWizardOpen}
+        onClose={() => setIsAddClientWizardOpen(false)}
+        tenantId={activeTenantContext?.organization.id || 'org-agency-prime'}
+        onAddClient={(newClient, newSite) => {
+          setClients((prev) => [newClient, ...prev]);
+          if (newSite) {
+            setSites((prev) => [newSite, ...prev]);
+          }
+          const auditEvt: AuditEvent = {
+            id: `audit-client-add-${Date.now()}`,
+            timestamp: new Date().toLocaleTimeString(),
+            userAction: `Onboarded client organization: ${newClient.name}`,
+            details: `Target: ${newClient.name}`,
+            siteId: newSite?.id || '',
+            siteName: newSite?.siteName || newClient.name,
+            tool: 'MULTI_TENANT_ONBOARDING',
+            resultSummary: `Client provisioned under tenant ${activeTenantContext?.organization.name || 'Imperial Enterprise'} with industry profile ${newClient.industry}.`,
+            isSuccess: true
+          };
+          setAuditEvents((prev) => [auditEvt, ...prev]);
+          setIsAddClientWizardOpen(false);
+        }}
+      />
+
+      {/* Mobile More Sheet */}
+      <MobileMoreSheet
+        isOpen={isMobileMoreOpen}
+        onClose={() => setIsMobileMoreOpen(false)}
+        onSelectTab={(tab) => {
+          setSelectedClientForDetail(null);
+          setSelectedSiteForDetail(null);
+          setCurrentTab(tab as any);
+        }}
+        onOpenMasterCertification={() => setIsMasterCertificationOpen(true)}
+      />
 
       {/* Task Detail Modal */}
       <TaskDetailModal

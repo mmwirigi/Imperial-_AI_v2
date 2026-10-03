@@ -490,6 +490,8 @@ export const availableAiModels: AIModel[] = [
 export const initialAuditEvents: AuditEvent[] = [
   {
     id: 'audit-1',
+    tenantId: 'org-imperial-kenya',
+    clientId: 'client-juba-raha',
     timestamp: '2026-09-27 08:35:10',
     siteId: 'demo-site-1',
     siteName: 'Juba Raha Paradise Hotel',
@@ -503,6 +505,8 @@ export const initialAuditEvents: AuditEvent[] = [
   },
   {
     id: 'audit-2',
+    tenantId: 'org-imperial-kenya',
+    clientId: 'client-debrazz-security',
     timestamp: '2026-09-27 06:15:22',
     siteId: 'demo-site-2',
     siteName: 'Debrazz Security Systems',
@@ -516,6 +520,8 @@ export const initialAuditEvents: AuditEvent[] = [
   },
   {
     id: 'audit-3',
+    tenantId: 'org-imperial-kenya',
+    clientId: 'client-rmia',
     timestamp: '2026-09-25 10:45:00',
     siteId: 'demo-site-4',
     siteName: 'Resource Management International Africa',
@@ -525,6 +531,21 @@ export const initialAuditEvents: AuditEvent[] = [
     parametersSummary: 'target_url=https://resourcekenya.com/sitemap.xml',
     resultSummary: '140 links validated successfully',
     approvalStatus: 'AUTOMATIC_READ_ONLY',
+    isSuccess: true,
+  },
+  {
+    id: 'audit-4',
+    tenantId: 'org-acme-holdings',
+    clientId: 'client-acme-wp',
+    timestamp: '2026-09-28 11:20:00',
+    siteId: 'demo-site-6',
+    siteName: 'Acme Global Publishing Portal',
+    userAction: 'Publish Article Batch',
+    aiAction: 'Execute bulk_publish',
+    tool: 'wordpress_content_publisher',
+    parametersSummary: 'postsCount=5',
+    resultSummary: 'Published 5 articles under Acme tenant isolation',
+    approvalStatus: 'APPROVED',
     isSuccess: true,
   },
 ];

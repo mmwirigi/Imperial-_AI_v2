@@ -300,7 +300,7 @@ export class MultiTenantService {
 
   public static getTasksForTenant(tasks: ProductionTask[], tenantId: string, clientId?: string, siteId?: string): ProductionTask[] {
     return tasks.filter((t) => {
-      const matchTenant = t.tenantId === tenantId;
+      const matchTenant = (t.tenantId || 'org-imperial-kenya') === tenantId;
       if (!matchTenant) return false;
       if (clientId && t.clientId !== clientId) return false;
       if (siteId && t.siteId !== siteId) return false;
@@ -310,7 +310,7 @@ export class MultiTenantService {
 
   public static getAuditEventsForTenant(audits: AuditEvent[], tenantId: string, clientId?: string): AuditEvent[] {
     return audits.filter((a) => {
-      const matchTenant = a.tenantId === tenantId;
+      const matchTenant = (a.tenantId || 'org-imperial-kenya') === tenantId;
       if (!matchTenant) return false;
       if (clientId && a.clientId !== clientId) return false;
       return true;
@@ -373,14 +373,6 @@ export class MultiTenantService {
       };
     }
 
-    if (site.clientId !== task.clientId) {
-      return {
-        valid: false,
-        blockReason: `WRONG_CLIENT_EXECUTION_BLOCKED: Site ${site.id} belongs to client '${site.clientId}', mismatched from task client '${task.clientId}'.`,
-        errorCode: 'WRONG_CLIENT_EXECUTION_BLOCKED'
-      };
-    }
-
     // 5. Connection resolution check
     const server = mcpServers.find((s) => s.id === targetConnectionId);
     if (server && server.siteId && server.siteId !== task.siteId) {
@@ -388,6 +380,14 @@ export class MultiTenantService {
         valid: false,
         blockReason: `WRONG_SITE_EXECUTION_BLOCKED: Target MCP server '${targetConnectionId}' is bound to site '${server.siteId}', but task targets '${task.siteId}'.`,
         errorCode: 'WRONG_SITE_EXECUTION_BLOCKED'
+      };
+    }
+
+    if (site.clientId !== task.clientId) {
+      return {
+        valid: false,
+        blockReason: `WRONG_CLIENT_EXECUTION_BLOCKED: Site ${site.id} belongs to client '${site.clientId}', mismatched from task client '${task.clientId}'.`,
+        errorCode: 'WRONG_CLIENT_EXECUTION_BLOCKED'
       };
     }
 

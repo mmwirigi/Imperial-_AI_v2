@@ -36,6 +36,7 @@ import {
   AgentExecutionMode,
   ActiveTenantContext
 } from '../types';
+import { Button, Card, Badge } from './common/UIComponents';
 
 interface ProductionTaskEngineProps {
   tasks: ProductionTask[];
@@ -62,21 +63,21 @@ const TEMPLATE_PROMPTS: Array<{
   riskLevel: ToolRiskLevel;
 }> = [
   {
-    domain: 'BOOKING',
-    label: 'Room Booking & SEO Meta Sync',
-    prompt: 'Audit room booking pages for Juba Raha Paradise Hotel, verify Rank Math schema, update missing meta descriptions, and verify booking CTA integrity.',
+    domain: 'SEO',
+    label: 'SEO Meta Descriptions & OG Audit',
+    prompt: 'Audit all published posts for missing meta descriptions, generate keyword-optimized summaries, and verify rendered Yoast/RankMath meta tags.',
     riskLevel: 'LOW_RISK_WRITE',
   },
   {
-    domain: 'SEO',
-    label: 'Yoast Product Schema Bulk Audit',
-    prompt: 'Scan all CCTV catalog products in Debrazz Security Systems, generate optimized Yoast focus keywords & meta descriptions, and verify against live schema.',
-    riskLevel: 'HIGH_RISK_WRITE',
+    domain: 'BOOKING',
+    label: 'Hotel Room Rates & Availability Check',
+    prompt: 'Inspect active room categories, ensure seasonal rates are synced, take a preflight checkpoint, and verify room inventory.',
+    riskLevel: 'LOW_RISK_WRITE',
   },
   {
     domain: 'MEDIA_ALT',
-    label: 'Media Library Alt-Text Missing Tags Fix',
-    prompt: 'Query all images in media library without alt attributes, generate descriptive hospitality/product alt tags, and verify image accessibility scores.',
+    label: 'Media Library Alt-Text Accessibility Batch',
+    prompt: 'Scan media library for images missing accessibility alt-text, generate descriptive labels, and update metadata with read-back verification.',
     riskLevel: 'LOW_RISK_WRITE',
   },
   {
@@ -178,54 +179,32 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
       ],
       steps: [
         {
-          id: `step-${Date.now()}-1`,
+          id: `step-1-${Date.now()}`,
           stepNumber: 1,
-          title: 'Create Preflight Database Checkpoint',
-          domain: 'BACKUPS',
-          targetResource: `${activeSite.websiteUrl}/wp-content/*`,
-          action: 'preflight_snapshot',
-          state: 'PENDING',
+          title: 'Preflight Resource Discovery & Read-Back Baseline',
+          domain,
+          action: 'DISCOVER_CURRENT_STATE',
+          targetResource: `${domain.toLowerCase()}_active_bundle`,
+          state: 'COMPLETED',
           riskLevel: 'READ',
+          preState: 'baseline_discovery_active',
+          proposedState: 'baseline_verified',
           requiresApproval: false,
-          durationMs: 250,
+          verificationExpected: 'Resource discovered and lock acquired'
         },
         {
-          id: `step-${Date.now()}-2`,
+          id: `step-2-${Date.now()}`,
           stepNumber: 2,
-          title: `Read-Back Verification of Backup Checkpoint`,
-          domain: 'BACKUPS',
-          targetResource: 'Checkpoint Snapshot Checksum',
-          action: 'verify_backup_integrity',
-          state: 'PENDING',
-          riskLevel: 'READ',
-          requiresApproval: false,
-          durationMs: 180,
-          verificationExpected: 'SHA-256 snapshot checksum valid; size > 0 KB'
-        },
-        {
-          id: `step-${Date.now()}-3`,
-          stepNumber: 3,
-          title: `Execute Approved ${domain} Changes`,
+          title: 'Compile Transformation Payload & Safety Assertion',
           domain,
-          targetResource: `${activeSite.websiteUrl} target entities`,
-          action: 'mutate_resources',
-          state: 'PENDING',
+          action: 'STAGED_MUTATION',
+          targetResource: `${domain.toLowerCase()}_payload`,
+          state: risk === 'READ' ? 'PENDING' : 'AWAITING_APPROVAL',
           riskLevel: risk,
+          preState: 'unoptimized_initial_content',
+          proposedState: 'ai_optimized_production_payload',
           requiresApproval: risk !== 'READ',
-          preState: 'Current metadata / schema values',
-          proposedState: 'Updated and validated operational values'
-        },
-        {
-          id: `step-${Date.now()}-4`,
-          stepNumber: 4,
-          title: 'Live Endpoint Read-Back & Assertion Verification',
-          domain,
-          targetResource: activeSite.websiteUrl,
-          action: 'verify_readback_assertion',
-          state: 'PENDING',
-          riskLevel: 'READ',
-          requiresApproval: false,
-          verificationExpected: 'actual metadata == expected metadata (HTTP 200 OK)'
+          verificationExpected: 'Mutation executed and verified via read-back'
         }
       ]
     };
@@ -237,185 +216,186 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto w-full">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-150">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold text-neutral-100 flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-amber-400" />
-              Production Task Engine
-            </h1>
-            <span className="text-[11px] font-mono uppercase bg-neutral-900 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
-              Pillars 1 & 2 · Production Execution
-            </span>
+          <div className="flex items-center gap-2">
+            <Badge variant="amber" size="sm">
+              PRODUCTION TASK ENGINE
+            </Badge>
             {activeTenantContext && (
               <button
                 onClick={onOpenTenantSelector}
                 title="Active Tenant & Client Scope"
-                className="flex items-center gap-1.5 px-2.5 py-0.5 bg-neutral-900 hover:bg-neutral-800 border border-amber-500/40 rounded text-[11px] font-mono text-amber-300 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded text-[11px] font-mono text-slate-800 transition-colors"
               >
                 <span>{activeTenantContext.organization.name}</span>
-                <span className="text-neutral-500">↓</span>
-                <span className="font-bold text-amber-400">{activeTenantContext.client.name}</span>
+                <span className="text-slate-400">↓</span>
+                <span className="font-bold text-amber-700">{activeTenantContext.client.name}</span>
               </button>
             )}
           </div>
-          <p className="text-xs text-neutral-400 mt-1">
-            Controlled execution engine: Turn natural language instructions into structured multi-step tasks across all WordPress operational domains.
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
+            Production Task Engine
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Turn natural language instructions into structured multi-step tasks across all WordPress operational domains.
           </p>
         </div>
 
-        <button
+        <Button
+          variant="primary"
+          size="md"
           onClick={() => setIsCreating(!isCreating)}
-          className="flex items-center gap-2 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 text-xs font-bold rounded-lg transition-colors shadow"
+          icon={Sparkles}
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          {isCreating ? 'Cancel Task Builder' : 'New Natural-Language Task'}
-        </button>
+          {isCreating ? 'Cancel Builder' : 'New Operational Task'}
+        </Button>
       </div>
 
-      {/* Production Workflow Lifecycle Diagram (Requirement 2) */}
-      <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3.5 space-y-2">
+      {/* Production Workflow Lifecycle Diagram */}
+      <Card className="p-4 space-y-2 bg-slate-50/70">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-[10px] font-mono uppercase text-amber-400 font-bold flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            Production Operational Workflow Pipeline (Requirement 2)
+          <span className="text-[11px] font-mono uppercase text-slate-700 font-bold flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            Production Operational Workflow Pipeline
           </span>
-          <span className="text-[10px] font-mono text-neutral-500">
-            Phase 5 Security Authority Guard
+          <span className="text-[10px] font-mono text-slate-400">
+            Phase 5 Security Authority Guard Active
           </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-xs font-mono">
-          <div className="p-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-300">
-            <div className="text-[9px] text-amber-400 font-bold">STEP 1</div>
+          <div className="p-2 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs">
+            <div className="text-[9px] text-amber-600 font-bold">STEP 1</div>
             <div>APPROVAL</div>
           </div>
-          <div className="p-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-300">
-            <div className="text-[9px] text-blue-400 font-bold">STEP 2</div>
+          <div className="p-2 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs">
+            <div className="text-[9px] text-blue-600 font-bold">STEP 2</div>
             <div>BACKUP</div>
           </div>
-          <div className="p-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-300">
-            <div className="text-[9px] text-blue-400 font-bold">STEP 3</div>
+          <div className="p-2 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs">
+            <div className="text-[9px] text-blue-600 font-bold">STEP 3</div>
             <div>VERIFY BACKUP</div>
           </div>
-          <div className="p-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-300">
-            <div className="text-[9px] text-amber-400 font-bold">STEP 4</div>
+          <div className="p-2 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs">
+            <div className="text-[9px] text-amber-600 font-bold">STEP 4</div>
             <div>CHANGE</div>
           </div>
-          <div className="p-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-300">
-            <div className="text-[9px] text-emerald-400 font-bold">STEP 5</div>
-            <div>READ-BACK / VERIFY</div>
+          <div className="p-2 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs">
+            <div className="text-[9px] text-emerald-600 font-bold">STEP 5</div>
+            <div>READ-BACK</div>
           </div>
-          <div className="p-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-300">
-            <div className="text-[9px] text-emerald-400 font-bold">STEP 6</div>
+          <div className="p-2 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs">
+            <div className="text-[9px] text-emerald-600 font-bold">STEP 6</div>
             <div>NEXT OP</div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Natural Language Task Creator Panel */}
       {isCreating && (
-        <div className="bg-neutral-900 border border-amber-500/30 rounded-xl p-5 space-y-4 shadow-lg">
+        <Card className="p-6 space-y-4 border-amber-300 ring-2 ring-amber-300/20 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <h2 className="text-sm font-bold text-neutral-100 uppercase tracking-wide">
+              <Sparkles className="w-4 h-4 text-amber-600" />
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
                 Natural-Language Task Generator
               </h2>
             </div>
             {activeSite && (
-              <span className="text-xs font-mono text-amber-400 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded font-bold">
+              <span className="text-xs font-mono text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-bold">
                 Target Scope: {activeSite.siteName}
               </span>
             )}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-neutral-300">
-              Enter Natural-Language Operational Prompt
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700">
+              Enter Operational Instruction
             </label>
             <textarea
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
               placeholder="e.g. Find all pages missing meta descriptions, generate SEO-friendly descriptions, and verify that Yoast rendered tags match..."
               rows={3}
-              className="w-full bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-lg p-3 text-xs text-neutral-200 outline-none transition-colors"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-amber-500 rounded-xl p-3 text-xs text-slate-900 outline-none transition-colors"
             />
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-neutral-400">Operational Domain:</span>
+              <span className="text-xs text-slate-500 font-semibold">Operational Domain:</span>
               <select
                 value={selectedDomain}
                 onChange={(e) => setSelectedDomain(e.target.value as OperationDomain)}
-                className="bg-neutral-950 border border-neutral-800 text-neutral-200 text-xs rounded-lg px-2.5 py-1 outline-none"
+                className="bg-white border border-slate-200 text-slate-900 text-xs rounded-xl px-3 py-1.5 outline-none font-medium"
               >
                 <option value="SEO">SEO (Yoast / Rank Math)</option>
-                <option value="PAGES_POSTS">Pages & Posts</option>
-                <option value="MEDIA_ALT">Media & Alt-Text</option>
-                <option value="ELEMENTOR">Elementor & Widgets</option>
+                <option value="PAGES_POSTS">Pages &amp; Posts</option>
+                <option value="MEDIA_ALT">Media &amp; Alt-Text</option>
+                <option value="ELEMENTOR">Elementor &amp; Widgets</option>
                 <option value="FORMS">Forms (WPForms / CF7)</option>
-                <option value="PLUGINS_THEMES">Plugins & Themes</option>
+                <option value="PLUGINS_THEMES">Plugins &amp; Themes</option>
                 <option value="WOOCOMMERCE">WooCommerce Products</option>
                 <option value="LEARNPRESS">LearnPress LMS</option>
                 <option value="BOOKING">Room Bookings</option>
-                <option value="BACKUPS">Backups & Snapshots</option>
+                <option value="BACKUPS">Backups &amp; Snapshots</option>
               </select>
             </div>
 
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => handleCreateFromPrompt(customPrompt || 'Inspect and optimize WordPress resources', selectedDomain, 'LOW_RISK_WRITE')}
               disabled={!customPrompt.trim()}
-              className="px-4 py-2 bg-amber-500 disabled:opacity-50 hover:bg-amber-400 text-neutral-950 text-xs font-bold rounded-lg transition-colors shadow"
             >
-              Compile & Queue Structured Task
-            </button>
+              Compile &amp; Queue Task
+            </Button>
           </div>
 
           {/* Quick Pre-made Templates */}
-          <div className="pt-2 border-t border-neutral-800/80 space-y-2">
-            <div className="text-[11px] font-mono text-neutral-400 uppercase">
-              Or pick an Imperial Enterprise operational recipe:
+          <div className="pt-3 border-t border-slate-100 space-y-2">
+            <div className="text-[11px] font-mono text-slate-500 uppercase font-semibold">
+              Or pick an Imperial operational recipe:
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {TEMPLATE_PROMPTS.map((t, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleCreateFromPrompt(t.prompt, t.domain, t.riskLevel)}
-                  className="p-2.5 bg-neutral-950 hover:bg-neutral-800/80 border border-neutral-800 text-left rounded-lg transition-colors group space-y-1"
+                  className="p-3 bg-slate-50 hover:bg-slate-100/90 border border-slate-200 text-left rounded-xl transition-colors group space-y-1"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-neutral-200 group-hover:text-amber-400">
+                    <span className="text-xs font-bold text-slate-900 group-hover:text-amber-700">
                       {t.label}
                     </span>
-                    <span className="text-[9px] font-mono text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded">
+                    <span className="text-[9px] font-mono text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200">
                       {t.domain}
                     </span>
                   </div>
-                  <p className="text-[11px] text-neutral-400 line-clamp-2">
+                  <p className="text-[11px] text-slate-500 line-clamp-2">
                     {t.prompt}
                   </p>
                 </button>
               ))}
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Main Split View: Tasks List (Left) & Active Stepper Execution Details (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Task Queue */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs text-neutral-400">
-            <span className="font-bold text-neutral-200 uppercase tracking-wide">
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span className="font-bold text-slate-900 uppercase tracking-wide">
               Task Queue ({filteredTasks.length})
             </span>
             <select
               value={filterDomain}
               onChange={(e) => setFilterDomain(e.target.value)}
-              className="bg-neutral-900 border border-neutral-800 text-neutral-300 text-xs rounded px-2 py-0.5"
+              className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg px-2 py-1"
             >
               <option value="ALL">All Domains</option>
               <option value="SEO">SEO</option>
@@ -433,34 +413,37 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
                 <div
                   key={t.id}
                   onClick={() => setSelectedTask(t)}
-                  className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 ${
                     isSelected
-                      ? 'bg-neutral-900 border-amber-500/50 shadow'
-                      : 'bg-neutral-900/60 hover:bg-neutral-900 border-neutral-800/80 hover:border-neutral-700'
+                      ? 'bg-amber-50/40 border-amber-300 ring-2 ring-amber-300/20 shadow-2xs'
+                      : 'bg-white hover:bg-slate-50 border-slate-200/90'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-950 text-neutral-300 border border-neutral-800">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
                       {t.domain}
                     </span>
-                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border font-semibold ${
-                      t.overallStatus === 'COMPLETED'
-                        ? 'text-emerald-400 border-emerald-900 bg-emerald-950/60'
-                        : t.overallStatus === 'PARTIAL_SUCCESS'
-                        ? 'text-amber-400 border-amber-900 bg-amber-950/60'
-                        : t.overallStatus === 'FAILED'
-                        ? 'text-rose-400 border-rose-900 bg-rose-950/60'
-                        : 'text-neutral-400 border-neutral-800 bg-neutral-950'
-                    }`}>
+                    <Badge
+                      variant={
+                        t.overallStatus === 'COMPLETED'
+                          ? 'success'
+                          : t.overallStatus === 'RUNNING'
+                          ? 'warning'
+                          : t.overallStatus === 'FAILED'
+                          ? 'error'
+                          : 'neutral'
+                      }
+                      size="sm"
+                    >
                       {t.overallStatus}
-                    </span>
+                    </Badge>
                   </div>
-                  <h3 className="text-xs font-semibold text-neutral-200 line-clamp-2">
+                  <h3 className="text-xs font-bold text-slate-900 line-clamp-2">
                     {t.title}
                   </h3>
-                  <div className="flex items-center justify-between text-[11px] text-neutral-400 pt-1 border-t border-neutral-800/40">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 font-mono">
                     <span className="truncate max-w-[120px]">{t.siteName}</span>
-                    <span className="font-mono text-amber-400 font-medium">
+                    <span className="text-amber-700 font-bold">
                       {t.steps.filter((s) => s.state === 'COMPLETED').length}/{t.steps.length} Steps
                     </span>
                   </div>
@@ -473,28 +456,28 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
         {/* Right Column (2 Cols): Selected Task Execution Details & Multi-Step Stepper */}
         <div className="lg:col-span-2 space-y-4">
           {current ? (
-            <div className="bg-neutral-900/90 border border-neutral-800 rounded-xl p-5 space-y-5">
+            <Card className="p-6 space-y-5">
               {/* Task Header & Execution Controls */}
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-4 border-b border-neutral-800">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-4 border-b border-slate-100">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold">
+                    <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200 font-bold">
                       {current.domain}
                     </span>
-                    <span className="text-xs text-neutral-400 font-medium">
+                    <span className="text-xs text-slate-600 font-medium">
                       {current.siteName}
                     </span>
                     {current.backupCheckpointId && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 bg-blue-950 text-blue-400 border border-blue-900 rounded flex items-center gap-1">
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 bg-blue-50 text-blue-700 border border-blue-200 rounded flex items-center gap-1">
                         <Database className="w-3 h-3" />
                         Checkpoint: {current.backupCheckpointId}
                       </span>
                     )}
                   </div>
-                  <h2 className="text-base font-bold text-neutral-100">
+                  <h2 className="text-base font-bold text-slate-900">
                     {current.title}
                   </h2>
-                  <p className="text-xs text-neutral-400">
+                  <p className="text-xs text-slate-500">
                     {current.naturalLanguagePrompt}
                   </p>
                 </div>
@@ -502,84 +485,70 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
                 {/* Control Action Buttons */}
                 <div className="flex items-center gap-2 shrink-0 flex-wrap">
                   {onOpenTaskDetail && (
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => onOpenTaskDetail(current)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-750 text-neutral-200 text-xs font-semibold rounded-lg transition-colors"
+                      icon={ExternalLink}
                     >
-                      <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
-                      Full Audit Detail
-                    </button>
+                      Audit Detail
+                    </Button>
                   )}
 
                   {current.overallStatus === 'PAUSED' ? (
-                    <button
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => onResumeTask(current.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-neutral-100 text-xs font-semibold rounded-lg transition-colors"
+                      icon={Play}
                     >
-                      <Play className="w-3.5 h-3.5" />
                       Resume
-                    </button>
+                    </Button>
                   ) : current.overallStatus === 'RUNNING' ? (
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => onPauseTask(current.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-semibold rounded-lg transition-colors border border-neutral-700"
+                      icon={Pause}
                     >
-                      <Pause className="w-3.5 h-3.5" />
                       Pause
-                    </button>
+                    </Button>
                   ) : null}
 
                   {current.canRollback && current.backupCheckpointId && current.rollbackMechanism !== 'UNAVAILABLE' && (
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => onRollbackTask(current.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-semibold rounded-lg transition-colors"
+                      icon={RotateCcw}
                     >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      Rollback Checkpoint
-                    </button>
+                      Rollback
+                    </Button>
                   )}
                 </div>
               </div>
 
-              {/* Immutable Context & Client Isolation Resolution Card (Requirement 7) */}
-              <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-xs space-y-1">
-                <div className="flex items-center justify-between text-neutral-400 font-mono text-[11px]">
-                  <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-                    <Lock className="w-3 h-3 text-amber-400" />
-                    Strict Execution Resolution: TASK → SITE → CONNECTION
+              {/* Execution Resolution Context Card */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-1">
+                <div className="flex items-center justify-between text-slate-600 font-mono text-[11px]">
+                  <span className="flex items-center gap-1 text-emerald-700 font-bold">
+                    <Lock className="w-3.5 h-3.5 text-amber-600" />
+                    Strict Resolution: TASK → SITE → CONNECTION
                   </span>
-                  <span>Isolation Gate: <strong className="text-emerald-400">PASSED</strong></span>
+                  <span>Isolation Gate: <strong className="text-emerald-700">PASSED</strong></span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 font-mono text-[10px] text-neutral-400 pt-1 border-t border-neutral-900">
-                  <div>Task: <span className="text-neutral-200">{current.id}</span></div>
-                  <div>Site Scope: <span className="text-amber-400">{current.siteId}</span></div>
-                  <div>Connection: <span className="text-neutral-200">{current.connectionId}</span></div>
+                <div className="grid grid-cols-3 gap-2 font-mono text-[10px] text-slate-500 pt-1 border-t border-slate-200">
+                  <div>Task: <span className="text-slate-900">{current.id}</span></div>
+                  <div>Site Scope: <span className="text-amber-700 font-bold">{current.siteId}</span></div>
+                  <div>Connection: <span className="text-slate-900">{current.connectionId}</span></div>
                 </div>
               </div>
 
-              {/* Partial Failure Alert Banner if applicable */}
-              {current.overallStatus === 'PARTIAL_SUCCESS' && (
-                <div className="p-3 bg-amber-950/40 border border-amber-600/60 rounded-lg text-xs space-y-1">
-                  <div className="flex items-center justify-between font-bold text-amber-300">
-                    <span className="flex items-center gap-1.5">
-                      <AlertTriangle className="w-4 h-4 text-amber-400" />
-                      PARTIAL SUCCESS BREAKDOWN (Requirement 5)
-                    </span>
-                    <span className="font-mono text-neutral-200">
-                      8 Succeeded | 2 Failed
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-amber-200/90">
-                    Operations completed with partial failures. Inspect the failure breakdown or trigger recovery workflows below.
-                  </p>
-                </div>
-              )}
-
-              {/* Multi-Step Pipeline Visual Stepper */}
+              {/* Multi-Step Pipeline Stepper */}
               <div className="space-y-3">
-                <div className="text-xs font-bold text-neutral-200 uppercase tracking-wide flex items-center justify-between">
+                <div className="text-xs font-bold text-slate-900 uppercase tracking-wide flex items-center justify-between">
                   <span>Execution Pipeline Stepper</span>
-                  <span className="text-[10px] text-neutral-400 font-mono">
+                  <span className="text-[10px] text-slate-500 font-mono">
                     Step {current.currentStepIndex + 1} of {current.steps.length}
                   </span>
                 </div>
@@ -588,96 +557,98 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
                   {current.steps.map((step, idx) => {
                     const isCurrent = idx === current.currentStepIndex;
                     const stepIcon = {
-                      COMPLETED: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
-                      EXECUTING: <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />,
-                      AWAITING_APPROVAL: <ShieldAlert className="w-4 h-4 text-rose-400" />,
-                      FAILED: <XCircle className="w-4 h-4 text-rose-500" />,
-                      PENDING: <Clock className="w-4 h-4 text-neutral-500" />,
-                      PREFLIGHT_CHECKPOINT: <Database className="w-4 h-4 text-blue-400" />,
-                      VERIFYING: <RefreshCw className="w-4 h-4 text-blue-400 animate-spin" />,
-                      ROLLED_BACK: <RotateCcw className="w-4 h-4 text-purple-400" />,
-                      SKIPPED: <Clock className="w-4 h-4 text-neutral-600" />,
+                      COMPLETED: <CheckCircle2 className="w-4 h-4 text-emerald-600" />,
+                      EXECUTING: <RefreshCw className="w-4 h-4 text-amber-600 animate-spin" />,
+                      AWAITING_APPROVAL: <ShieldAlert className="w-4 h-4 text-rose-600" />,
+                      FAILED: <XCircle className="w-4 h-4 text-rose-600" />,
+                      PENDING: <Clock className="w-4 h-4 text-slate-400" />,
+                      PREFLIGHT_CHECKPOINT: <Database className="w-4 h-4 text-blue-600" />,
+                      VERIFYING: <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />,
+                      ROLLED_BACK: <RotateCcw className="w-4 h-4 text-purple-600" />,
+                      SKIPPED: <Clock className="w-4 h-4 text-slate-400" />,
                     }[step.state];
-
-                    const stepBorder = isCurrent 
-                      ? 'border-amber-500/60 bg-neutral-950' 
-                      : 'border-neutral-800/80 bg-neutral-950/60';
 
                     return (
                       <div
                         key={step.id}
-                        className={`border rounded-xl p-3.5 space-y-2.5 transition-all ${stepBorder}`}
+                        className={`border rounded-2xl p-4 space-y-2.5 transition-all ${
+                          isCurrent
+                            ? 'border-amber-300 bg-amber-50/20 ring-1 ring-amber-300/30'
+                            : 'border-slate-200 bg-white'
+                        }`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
                             {stepIcon}
-                            <span className="text-xs font-bold text-neutral-200">
+                            <span className="text-xs font-bold text-slate-900">
                               Step {step.stepNumber}: {step.title}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-900 text-neutral-400 border border-neutral-800">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
                               {step.state}
                             </span>
                             {step.durationMs && (
-                              <span className="text-[10px] font-mono text-neutral-500">
+                              <span className="text-[10px] font-mono text-slate-400">
                                 {step.durationMs}ms
                               </span>
                             )}
                           </div>
                         </div>
 
-                        {/* Resource target & action details */}
-                        <div className="text-xs text-neutral-400 space-y-1 pl-6">
+                        {/* Resource target & details */}
+                        <div className="text-xs text-slate-600 space-y-1 pl-6">
                           <div className="flex items-center gap-2">
-                            <span className="text-neutral-500">Target:</span>
-                            <span className="text-neutral-300 font-mono">{step.targetResource}</span>
+                            <span className="text-slate-400">Target:</span>
+                            <span className="text-slate-800 font-mono">{step.targetResource}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-neutral-500">Action:</span>
-                            <span className="text-neutral-300 font-mono">{step.action}</span>
+                            <span className="text-slate-400">Action:</span>
+                            <span className="text-slate-800 font-mono">{step.action}</span>
                           </div>
                           {step.verificationExpected && (
-                            <div className="text-emerald-400/90 font-mono text-[11px] pt-0.5">
+                            <div className="text-emerald-700 font-mono text-[11px] pt-0.5">
                               Assertion: {step.verificationExpected}
                             </div>
                           )}
                         </div>
 
-                        {/* Before/After Diff viewer if present */}
+                        {/* Before/After Diff viewer */}
                         {step.preState && step.proposedState && (
                           <div className="pl-6 pt-1 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                            <div className="bg-neutral-900 border border-neutral-800 rounded p-2 space-y-0.5">
-                              <span className="text-[10px] font-mono text-neutral-500 uppercase">Current (Before)</span>
-                              <p className="text-neutral-300 font-mono text-[11px] break-words">{step.preState}</p>
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-0.5">
+                              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold">Current (Before)</span>
+                              <p className="text-slate-700 font-mono text-[11px] break-words">{step.preState}</p>
                             </div>
-                            <div className="bg-neutral-900 border border-amber-500/20 rounded p-2 space-y-0.5">
-                              <span className="text-[10px] font-mono text-amber-400 uppercase">Proposed (After)</span>
-                              <p className="text-amber-200 font-mono text-[11px] break-words">{step.proposedState}</p>
+                            <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-2.5 space-y-0.5">
+                              <span className="text-[10px] font-mono text-amber-900 uppercase font-bold">Proposed (After)</span>
+                              <p className="text-amber-900 font-mono text-[11px] break-words">{step.proposedState}</p>
                             </div>
                           </div>
                         )}
 
                         {/* Interactive Step Actions */}
-                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-800/60 pl-6">
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 pl-6">
                           {step.state === 'AWAITING_APPROVAL' && (
-                            <button
+                            <Button
+                              variant="primary"
+                              size="sm"
                               onClick={() => onOpenApproval(current.id, step.id)}
-                              className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-neutral-950 text-xs font-bold rounded transition-colors flex items-center gap-1.5"
+                              icon={ShieldAlert}
                             >
-                              <ShieldAlert className="w-3.5 h-3.5" />
-                              Review & Authorize
-                            </button>
+                              Review &amp; Authorize
+                            </Button>
                           )}
 
                           {step.state === 'PENDING' && (
-                            <button
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={() => onExecuteStep(current.id, step.id)}
-                              className="px-3 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium rounded transition-colors flex items-center gap-1"
+                              icon={Play}
                             >
-                              <Play className="w-3 h-3 text-amber-400" />
                               Execute Step Now
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -688,27 +659,27 @@ export const ProductionTaskEngine: React.FC<ProductionTaskEngineProps> = ({
 
               {/* Execution Console Logs */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-neutral-400">
-                  <span className="font-bold text-neutral-200 uppercase tracking-wide flex items-center gap-1.5">
-                    <Terminal className="w-3.5 h-3.5 text-neutral-400" />
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span className="font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                    <Terminal className="w-3.5 h-3.5 text-slate-500" />
                     Task Execution Telemetry Log
                   </span>
-                  <span className="font-mono text-[10px] text-emerald-400">
+                  <span className="font-mono text-[10px] text-emerald-700 font-bold">
                     Live Channel
                   </span>
                 </div>
-                <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3 font-mono text-xs text-neutral-300 space-y-1 max-h-36 overflow-y-auto">
+                <div className="bg-slate-900 text-slate-200 rounded-2xl p-4 font-mono text-xs space-y-1 max-h-36 overflow-y-auto shadow-2xs">
                   {current.executionLogs.map((log, i) => (
-                    <div key={i} className="text-neutral-400">
+                    <div key={i} className="text-slate-300">
                       {log}
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
+            </Card>
           ) : (
-            <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-12 text-center text-neutral-400 space-y-2">
-              <CheckSquare className="w-8 h-8 mx-auto text-neutral-600" />
+            <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-400 space-y-2">
+              <CheckSquare className="w-8 h-8 mx-auto text-slate-300" />
               <p className="text-xs">Select a task from the queue to view its execution pipeline.</p>
             </div>
           )}
